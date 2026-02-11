@@ -20,4 +20,11 @@ contextBridge.exposeInMainWorld('ironcord', {
   onIRCHistory: (callback: any) => ipcRenderer.on('irc:history', (event, data) => callback(data)),
   onIRCMembers: (callback: any) => ipcRenderer.on('irc:members', (event, data) => callback(data)),
   onIRCError: (callback: any) => ipcRenderer.on('irc:error', (event, err) => callback(err)),
+
+  // Window Controls
+  windowControls: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+  },
 });

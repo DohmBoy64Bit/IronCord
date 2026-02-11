@@ -15,6 +15,11 @@ const mockIroncord = {
     onIRCHistory: vi.fn(),
     onIRCMembers: vi.fn(),
     onIRCError: vi.fn(),
+    windowControls: {
+        minimize: vi.fn(),
+        maximize: vi.fn(),
+        close: vi.fn(),
+    },
 };
 
 Object.defineProperty(window, 'ironcord', {

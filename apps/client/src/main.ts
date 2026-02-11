@@ -45,6 +45,7 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    titleBarStyle: 'hidden',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -162,6 +163,22 @@ ipcMain.handle('guilds:create', async (event, { name }) => {
     body: JSON.stringify({ name }),
   });
   return await res.json();
+});
+
+ipcMain.handle('window:minimize', () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.handle('window:toggle-maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow?.maximize();
+  }
+});
+
+ipcMain.handle('window:close', () => {
+  mainWindow?.close();
 });
 
 // --- Lifecycle ---

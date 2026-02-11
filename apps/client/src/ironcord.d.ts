@@ -18,6 +18,11 @@ interface IronCordAPI {
   onIRCHistory: (callback: (messages: any[]) => void) => void;
   onIRCMembers: (callback: (data: { channel: string; members: string[] }) => void) => void;
   onIRCError: (callback: (err: any) => void) => void;
+  windowControls: {
+    minimize: () => Promise<void>;
+    maximize: () => Promise<void>;
+    close: () => Promise<void>;
+  };
 }
 
 declare global {

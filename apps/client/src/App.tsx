@@ -5,6 +5,7 @@ import Register from './components/Register';
 import Sidebar from './components/Sidebar';
 import ChannelList from './components/ChannelList';
 import Chat from './components/Chat';
+import TitleBar from './components/TitleBar';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'login' | 'register'>('login');
@@ -63,19 +64,24 @@ const App: React.FC = () => {
     }
   }, [user]);
 
-  if (!user) {
-    return view === 'login' ? (
-      <Login onSwitch={() => setView('register')} />
-    ) : (
-      <Register onSwitch={() => setView('login')} />
-    );
-  }
-
   return (
-    <div className="flex h-screen bg-gray-900 overflow-hidden select-none">
-      <Sidebar />
-      <ChannelList />
-      <Chat />
+    <div className="flex h-screen flex-col bg-gray-900 overflow-hidden select-none">
+      <TitleBar />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {!user ? (
+          view === 'login' ? (
+            <Login onSwitch={() => setView('register')} />
+          ) : (
+            <Register onSwitch={() => setView('login')} />
+          )
+        ) : (
+          <>
+            <Sidebar />
+            <ChannelList />
+            <Chat />
+          </>
+        )}
+      </div>
     </div>
   );
 };
