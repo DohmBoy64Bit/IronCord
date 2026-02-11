@@ -19,8 +19,8 @@ const App: React.FC = () => {
 
       // 2. Connect to IRC via Gateway
       window.ironcord.connectIRC(user.id, {
-        host: 'localhost',
-        port: 6667,
+        host: process.env.VITE_IRC_HOST || 'localhost',
+        port: parseInt(process.env.VITE_IRC_PORT || '6667', 10),
         nick: user.irc_nick,
       });
 

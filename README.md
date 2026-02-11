@@ -107,6 +107,9 @@ cd apps/client && npm test
 
 -   **Modern Auth:** Email/Password registration with bcrypt hashing and JWT security.
 -   **Guilds & Channels:** Discord-style server hierarchies mapped to IRC namespaces.
+-   **Search & Discovery:** Real-time local message search for channel history.
+-   **Member List:** Functional side panel showing online status and users.
+-   **Interactive Elements:** Full support for stickers, gifts, and a built-in emoji picker.
 -   **IRC Reconnection:** Automatic reconnection with exponential backoff for reliability.
 -   **History Replay:** Leverages IRCv3 `CHATHISTORY` for seamless message replay.
 -   **Premium UI:** Dark mode, glassmorphism, and Lucide icons for a premium feel.

@@ -12,7 +12,7 @@ let socket: Socket | null = null;
 let mainWindow: BrowserWindow | null = null;
 let authToken: string | null = null;
 
-const GATEWAY_URL = 'http://localhost:3000';
+const GATEWAY_URL = process.env.VITE_GATEWAY_URL || 'http://localhost:3000';
 
 const createWindow = () => {
   // Create the browser window.

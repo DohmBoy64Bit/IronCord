@@ -45,11 +45,14 @@ export class IRCClient extends EventEmitter {
 
     this.socket.on('data', (data) => {
       this.buffer += data.toString();
-      const lines = this.buffer.split('\r\n');
+      // Handle both \r\n and \n for robustness
+      const lines = this.buffer.split(/\r?\n/);
       this.buffer = lines.pop() || '';
 
       for (const line of lines) {
-        this.handleLine(line);
+        if (line.trim()) {
+          this.handleLine(line);
+        }
       }
     });
 
@@ -128,11 +131,20 @@ export class IRCClient extends EventEmitter {
     const parts = rawLine.split(' ');
     const prefix = parts[0].startsWith(':') ? parts.shift()?.substring(1) : null;
     const command = parts.shift()?.toUpperCase();
-    const params = parts;
+
+    // Proper IRC param parsing
+    const params: string[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i].startsWith(':')) {
+        params.push(parts.slice(i).join(' ').substring(1));
+        break;
+      }
+      params.push(parts[i]);
+    }
 
     // Handle PING
     if (command === 'PING') {
-      this.send(`PONG ${params[0]}`);
+      this.send(`PONG :${params[0]}`);
       return;
     }
 
@@ -140,22 +152,26 @@ export class IRCClient extends EventEmitter {
     if (command === 'CAP') {
       const subcommand = params[1];
       if (subcommand === 'LS') {
-        const caps = line;
+        const availableCaps = params[params.length - 1].split(' ');
         const requestedCaps = [];
-        if (caps.includes('sasl') && this.config.password) requestedCaps.push('sasl');
-        if (caps.includes('echo-message')) requestedCaps.push('echo-message');
-        if (caps.includes('server-time')) requestedCaps.push('server-time');
-        if (caps.includes('message-tags')) requestedCaps.push('message-tags');
-        if (caps.includes('batch')) requestedCaps.push('batch');
-        if (caps.includes('draft/chathistory') || caps.includes('chathistory')) requestedCaps.push('draft/chathistory');
+
+        if (availableCaps.includes('sasl') && this.config.password) requestedCaps.push('sasl');
+        if (availableCaps.includes('echo-message')) requestedCaps.push('echo-message');
+        if (availableCaps.includes('server-time')) requestedCaps.push('server-time');
+        if (availableCaps.includes('message-tags')) requestedCaps.push('message-tags');
+        if (availableCaps.includes('batch')) requestedCaps.push('batch');
+        if (availableCaps.includes('draft/chathistory') || availableCaps.includes('chathistory')) {
+          requestedCaps.push(availableCaps.includes('draft/chathistory') ? 'draft/chathistory' : 'chathistory');
+        }
 
         if (requestedCaps.length > 0) {
           this.send(`CAP REQ :${requestedCaps.join(' ')}`);
-        } else if (!params.includes('*')) {
+        } else if (params[1] !== '*' && params[2] !== '*') { // Check if multiline CAP LS
           this.send('CAP END');
         }
       } else if (subcommand === 'ACK') {
-        if (line.includes('sasl')) {
+        const ackedCaps = params[params.length - 1].split(' ');
+        if (ackedCaps.includes('sasl')) {
           this.send('AUTHENTICATE PLAIN');
         } else {
           this.send('CAP END');
