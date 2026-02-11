@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'ironcord_secret_key_change_me';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'ironcord_secret_key_change_me' : undefined);
+
+if (!JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not set');
+}
 
 export interface AuthenticatedRequest extends Request {
     user?: { userId: string };
@@ -18,7 +22,7 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
     const token = authHeader.split(' ')[1];
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+        const decoded = jwt.verify(token, JWT_SECRET!) as { userId: string };
         req.user = { userId: decoded.userId };
         next();
     } catch (err) {

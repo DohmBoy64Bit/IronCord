@@ -1,4 +1,5 @@
 import * as net from 'net';
+import * as crypto from 'crypto';
 import { EventEmitter } from 'events';
 
 export interface IRCConfig {
@@ -32,7 +33,7 @@ export class IRCClient extends EventEmitter {
 
   // CHATHISTORY / BATCH state
   private capsSent: boolean = false;
-  private batchMessages: Map<string, Array<{ author: string; channel: string; content: string; timestamp?: string }>> = new Map();
+  private batchMessages: Map<string, Array<{ id: string; author: string; channel: string; content: string; timestamp?: string }>> = new Map();
 
   constructor(private config: IRCConfig, reconnectOptions?: Partial<ReconnectOptions>) {
     super();
@@ -238,10 +239,16 @@ export class IRCClient extends EventEmitter {
     if (command === 'PRIVMSG') {
       const author = prefix?.split('!')[0] || '';
       const channel = params[0];
-      let content = params.slice(1).join(' ');
-      if (content.startsWith(':')) content = content.substring(1);
+      const contentParts = params.slice(1).join(' ');
+      let content = contentParts.startsWith(':') ? contentParts.substring(1) : contentParts;
 
-      const msgData = { author, channel, content, timestamp: tags['time'] || undefined };
+      const msgData = {
+        id: crypto.randomUUID(),
+        author,
+        channel,
+        content,
+        timestamp: tags['time'] || undefined
+      };
 
       // Check if this message is part of a batch
       const batchTag = tags['batch'];

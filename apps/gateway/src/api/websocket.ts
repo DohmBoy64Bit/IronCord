@@ -4,7 +4,11 @@ import jwt from 'jsonwebtoken';
 import { IRCClient } from '../irc-client';
 import { dbService } from '../services/db.service';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'ironcord_secret_key_change_me';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'ironcord_secret_key_change_me' : undefined);
+
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set');
+}
 
 export class WebSocketServer {
   private io: SocketServer;
@@ -13,7 +17,9 @@ export class WebSocketServer {
   constructor(server: HttpServer) {
     this.io = new SocketServer(server, {
       cors: {
-        origin: '*', // For development
+        origin: process.env.NODE_ENV === 'production'
+          ? process.env.CLIENT_ORIGIN
+          : '*', // Allow all in dev, but restrict in prod
       },
     });
 
@@ -25,7 +31,7 @@ export class WebSocketServer {
       }
 
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+        const decoded = jwt.verify(token, JWT_SECRET!) as any;
         (socket as any).userId = decoded.userId;
         next();
       } catch (err) {

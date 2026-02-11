@@ -55,7 +55,10 @@ describe('ChannelList Component', () => {
 
     it('shows user nickname in profile bar', () => {
         const guild = { id: 'g1', name: 'G1', irc_namespace_prefix: '#g1-' };
-        useStore.setState({ currentGuild: guild });
+        useStore.setState({
+            currentGuild: guild,
+            channels: { g1: [] } // Pre-set channels to avoid useEffect-triggered fetch transitions
+        });
         render(<ChannelList />);
 
         expect(screen.getByText('tester')).toBeInTheDocument();

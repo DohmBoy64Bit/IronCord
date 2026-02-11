@@ -1,16 +1,42 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import * as fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { io, Socket } from 'socket.io-client';
+
+const AUTH_FILE = path.join(app.getPath('userData'), 'auth_session.json');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
 
+// --- Persistence ---
+function loadAuthSession() {
+  try {
+    if (fs.existsSync(AUTH_FILE)) {
+      const data = fs.readFileSync(AUTH_FILE, 'utf8');
+      const session = JSON.parse(data);
+      authToken = session.token || null;
+    }
+  } catch (err) {
+    console.error('Failed to load auth session:', err);
+  }
+}
+
+function saveAuthSession(token: string | null) {
+  try {
+    fs.writeFileSync(AUTH_FILE, JSON.stringify({ token }));
+  } catch (err) {
+    console.error('Failed to save auth session:', err);
+  }
+}
+
 let socket: Socket | null = null;
 let mainWindow: BrowserWindow | null = null;
 let authToken: string | null = null;
+
+loadAuthSession(); // Load on start
 
 const GATEWAY_URL = process.env.VITE_GATEWAY_URL || 'http://localhost:3000';
 
@@ -90,7 +116,10 @@ ipcMain.handle('auth:register', async (event, data) => {
     body: JSON.stringify(data),
   });
   const result = await res.json();
-  if ((result as any).token) authToken = (result as any).token;
+  if ((result as any).token) {
+    authToken = (result as any).token;
+    saveAuthSession(authToken);
+  }
   return result;
 });
 
@@ -101,7 +130,10 @@ ipcMain.handle('auth:login', async (event, data) => {
     body: JSON.stringify(data),
   });
   const result = await res.json();
-  if ((result as any).token) authToken = (result as any).token;
+  if ((result as any).token) {
+    authToken = (result as any).token;
+    saveAuthSession(authToken);
+  }
   return result;
 });
 

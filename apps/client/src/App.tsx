@@ -18,16 +18,19 @@ const App: React.FC = () => {
       });
 
       // 2. Connect to IRC via Gateway
+      const ircHost = process.env.VITE_IRC_HOST || 'localhost';
+      const ircPort = parseInt(process.env.VITE_IRC_PORT || '6667', 10);
+
       window.ironcord.connectIRC(user.id, {
-        host: process.env.VITE_IRC_HOST || 'localhost',
-        port: parseInt(process.env.VITE_IRC_PORT || '6667', 10),
+        host: ircHost,
+        port: ircPort,
         nick: user.irc_nick,
       });
 
       // 3. Setup event listeners
       window.ironcord.onIRCMessage((msg: any) => {
         addMessage(msg.channel, {
-          id: msg.id || Math.random().toString(36),
+          id: msg.id, // Now provided by server
           channel: msg.channel,
           author: msg.author,
           content: msg.content,
@@ -41,7 +44,7 @@ const App: React.FC = () => {
 
         const channel = historyMessages[0].channel;
         const formatted = historyMessages.map((msg: any) => ({
-          id: Math.random().toString(36),
+          id: msg.id, // Use server ID
           channel: msg.channel,
           author: msg.author,
           content: msg.content,

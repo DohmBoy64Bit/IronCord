@@ -48,6 +48,7 @@ describe('Guilds Routes', () => {
         });
 
         it('should return 500 if guild creation fails', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => { });
             (dbService.query as any).mockRejectedValue(new Error('DB Error'));
 
             const res = await request(app)

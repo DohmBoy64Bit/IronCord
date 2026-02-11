@@ -71,6 +71,7 @@ describe('Auth Routes', () => {
         });
 
         it('should return 500 if database query fails', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => { });
             (bcrypt.hash as any).mockResolvedValue('hashedPassword');
             (dbService.query as any).mockRejectedValue(new Error('DB Error'));
 
@@ -120,6 +121,7 @@ describe('Auth Routes', () => {
         });
 
         it('should return 500 if login process fails', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => { });
             (dbService.query as any).mockRejectedValue(new Error('DB Error'));
 
             const res = await request(app)

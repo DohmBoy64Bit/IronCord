@@ -84,6 +84,7 @@ describe('DatabaseService', () => {
 
     describe('initializeSchema', () => {
         it('should read SQL file and execute it', async () => {
+            vi.spyOn(console, 'log').mockImplementation(() => { });
             const pool = (dbService as any).pool;
             pool.query.mockResolvedValue({});
 
@@ -93,6 +94,7 @@ describe('DatabaseService', () => {
         });
 
         it('should throw if schema execution fails', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => { });
             const pool = (dbService as any).pool;
             pool.query.mockRejectedValue(new Error('syntax error'));
 
