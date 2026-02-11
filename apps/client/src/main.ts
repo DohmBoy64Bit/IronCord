@@ -10,6 +10,9 @@ if (started) {
 
 let socket: Socket | null = null;
 let mainWindow: BrowserWindow | null = null;
+let authToken: string | null = null;
+
+const GATEWAY_URL = 'http://localhost:3000';
 
 const createWindow = () => {
   // Create the browser window.
@@ -34,16 +37,25 @@ const createWindow = () => {
   mainWindow.webContents.openDevTools();
 };
 
+// --- Helper ---
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  return headers;
+}
+
 // --- IPC Handlers ---
 
 ipcMain.handle('irc:connect', (event, { userId, config }) => {
   if (socket) socket.disconnect();
 
-  socket = io('http://localhost:3000');
+  socket = io(GATEWAY_URL, {
+    auth: { token: authToken },
+  });
 
   socket.on('connect', () => {
     console.log('Connected to Gateway');
-    socket.emit('irc:connect', { userId, config });
+    socket!.emit('irc:connect', { config });
   });
 
   socket.on('irc:registered', () => {
@@ -52,6 +64,10 @@ ipcMain.handle('irc:connect', (event, { userId, config }) => {
 
   socket.on('irc:message', (msg) => {
     mainWindow?.webContents.send('irc:message', msg);
+  });
+
+  socket.on('irc:history', (data) => {
+    mainWindow?.webContents.send('irc:history', data);
   });
 
   socket.on('irc:error', (err) => {
@@ -68,30 +84,47 @@ ipcMain.handle('irc:send-message', (event, { channel, message }) => {
 });
 
 ipcMain.handle('auth:register', async (event, data) => {
-  const res = await fetch('http://localhost:3000/auth/register', {
+  const res = await fetch(`${GATEWAY_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return await res.json();
+  const result = await res.json();
+  if ((result as any).token) authToken = (result as any).token;
+  return result;
 });
 
 ipcMain.handle('auth:login', async (event, data) => {
-  const res = await fetch('http://localhost:3000/auth/login', {
+  const res = await fetch(`${GATEWAY_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return await res.json();
+  const result = await res.json();
+  if ((result as any).token) authToken = (result as any).token;
+  return result;
 });
 
-ipcMain.handle('guilds:get-mine', async (event, userId) => {
-  const res = await fetch(`http://localhost:3000/guilds/user/${userId}`);
+ipcMain.handle('guilds:get-mine', async (event) => {
+  const res = await fetch(`${GATEWAY_URL}/guilds/mine`, {
+    headers: authHeaders(),
+  });
   return await res.json();
 });
 
 ipcMain.handle('guilds:get-channels', async (event, guildId) => {
-  const res = await fetch(`http://localhost:3000/guilds/${guildId}/channels`);
+  const res = await fetch(`${GATEWAY_URL}/guilds/${guildId}/channels`, {
+    headers: authHeaders(),
+  });
+  return await res.json();
+});
+
+ipcMain.handle('guilds:create', async (event, { name }) => {
+  const res = await fetch(`${GATEWAY_URL}/guilds`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ name }),
+  });
   return await res.json();
 });
 
@@ -118,6 +151,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.

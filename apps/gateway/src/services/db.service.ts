@@ -7,11 +7,11 @@ export class DatabaseService {
 
   constructor() {
     this.pool = new Pool({
-      user: 'ironcord',
-      host: 'localhost',
-      database: 'ironcord',
-      password: 'ironcord_password',
-      port: 5432,
+      user: process.env.DB_USER || 'ironcord',
+      host: process.env.DB_HOST || 'localhost',
+      database: process.env.DB_NAME || 'ironcord',
+      password: process.env.DB_PASSWORD || 'ironcord_password',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
     });
   }
 
@@ -25,7 +25,7 @@ export class DatabaseService {
   public async initializeSchema(): Promise<void> {
     const schemaPath = path.join(__dirname, '../db/schema.sql');
     const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-    
+
     try {
       await this.pool.query(schemaSql);
       console.log('Database schema initialized successfully');

@@ -10,15 +10,37 @@ export interface IRCConfig {
   password?: string; // SASL Password
 }
 
+export interface ReconnectOptions {
+  maxRetries: number;
+  initialDelay: number;
+  maxDelay: number;
+}
+
+const DEFAULT_RECONNECT: ReconnectOptions = {
+  maxRetries: 10,
+  initialDelay: 1000,
+  maxDelay: 30000,
+};
+
 export class IRCClient extends EventEmitter {
   private socket: net.Socket | null = null;
   private buffer: string = '';
+  private intentionalDisconnect: boolean = false;
+  private reconnectAttempts: number = 0;
+  private reconnectOptions: ReconnectOptions;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private config: IRCConfig) {
+  // CHATHISTORY / BATCH state
+  private capsSent: boolean = false;
+  private batchMessages: Map<string, Array<{ author: string; channel: string; content: string; timestamp?: string }>> = new Map();
+
+  constructor(private config: IRCConfig, reconnectOptions?: Partial<ReconnectOptions>) {
     super();
+    this.reconnectOptions = { ...DEFAULT_RECONNECT, ...reconnectOptions };
   }
 
   public connect(): void {
+    this.intentionalDisconnect = false;
     this.socket = new net.Socket();
 
     this.socket.on('data', (data) => {
@@ -33,6 +55,7 @@ export class IRCClient extends EventEmitter {
 
     this.socket.on('connect', () => {
       console.log('TCP Connected to', this.config.host, ':', this.config.port);
+      this.reconnectAttempts = 0;
       this.send('CAP LS 302');
       this.send(`NICK ${this.config.nick}`);
       const username = this.config.username || this.config.nick;
@@ -43,15 +66,39 @@ export class IRCClient extends EventEmitter {
     this.socket.on('error', (err) => {
       console.error('Socket error:', err.message);
       this.emit('error', err);
-      // Don't crash the process
     });
 
     this.socket.on('close', () => {
       console.log('Socket closed');
       this.emit('close');
+
+      if (!this.intentionalDisconnect) {
+        this.attemptReconnect();
+      }
     });
 
     this.socket.connect(this.config.port, this.config.host);
+  }
+
+  private attemptReconnect(): void {
+    if (this.reconnectAttempts >= this.reconnectOptions.maxRetries) {
+      console.error(`IRC: Max reconnection attempts (${this.reconnectOptions.maxRetries}) reached`);
+      this.emit('reconnect_failed');
+      return;
+    }
+
+    const delay = Math.min(
+      this.reconnectOptions.initialDelay * Math.pow(2, this.reconnectAttempts),
+      this.reconnectOptions.maxDelay
+    );
+    this.reconnectAttempts++;
+
+    console.log(`IRC: Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.reconnectOptions.maxRetries})`);
+    this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
+
+    this.reconnectTimer = setTimeout(() => {
+      this.connect();
+    }, delay);
   }
 
   private send(data: string): void {
@@ -66,12 +113,16 @@ export class IRCClient extends EventEmitter {
 
     // Simple parsing to handle optional IRCv3 tags
     let rawLine = line;
-    let tags = {};
+    let tags: Record<string, string> = {};
     if (rawLine.startsWith('@')) {
       const spaceIdx = rawLine.indexOf(' ');
       const tagsStr = rawLine.substring(1, spaceIdx);
       rawLine = rawLine.substring(spaceIdx + 1);
-      // We could parse tags here if needed later
+      // Parse tags
+      for (const tag of tagsStr.split(';')) {
+        const [key, value] = tag.split('=');
+        tags[key] = value || '';
+      }
     }
 
     const parts = rawLine.split(' ');
@@ -95,6 +146,8 @@ export class IRCClient extends EventEmitter {
         if (caps.includes('echo-message')) requestedCaps.push('echo-message');
         if (caps.includes('server-time')) requestedCaps.push('server-time');
         if (caps.includes('message-tags')) requestedCaps.push('message-tags');
+        if (caps.includes('batch')) requestedCaps.push('batch');
+        if (caps.includes('draft/chathistory') || caps.includes('chathistory')) requestedCaps.push('draft/chathistory');
 
         if (requestedCaps.length > 0) {
           this.send(`CAP REQ :${requestedCaps.join(' ')}`);
@@ -147,13 +200,40 @@ export class IRCClient extends EventEmitter {
       this.emit('registered');
     }
 
+    // Handle BATCH start/end
+    if (command === 'BATCH') {
+      const batchRef = params[0];
+      if (batchRef.startsWith('+')) {
+        // Batch start
+        const batchId = batchRef.substring(1);
+        this.batchMessages.set(batchId, []);
+      } else if (batchRef.startsWith('-')) {
+        // Batch end — emit collected messages
+        const batchId = batchRef.substring(1);
+        const messages = this.batchMessages.get(batchId);
+        if (messages && messages.length > 0) {
+          this.emit('history', messages);
+        }
+        this.batchMessages.delete(batchId);
+      }
+    }
+
     // Handle incoming messages
     if (command === 'PRIVMSG') {
       const author = prefix?.split('!')[0] || '';
       const channel = params[0];
       let content = params.slice(1).join(' ');
       if (content.startsWith(':')) content = content.substring(1);
-      this.emit('message', { author, channel, content });
+
+      const msgData = { author, channel, content, timestamp: tags['time'] || undefined };
+
+      // Check if this message is part of a batch
+      const batchTag = tags['batch'];
+      if (batchTag && this.batchMessages.has(batchTag)) {
+        this.batchMessages.get(batchTag)!.push(msgData);
+      } else {
+        this.emit('message', msgData);
+      }
     }
   }
 
@@ -165,7 +245,16 @@ export class IRCClient extends EventEmitter {
     this.send(`PRIVMSG ${target} :${message}`);
   }
 
+  public fetchHistory(channel: string, limit: number = 50): void {
+    this.send(`CHATHISTORY LATEST ${channel} * ${limit}`);
+  }
+
   public disconnect(): void {
+    this.intentionalDisconnect = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.socket) {
       this.socket.end();
     }

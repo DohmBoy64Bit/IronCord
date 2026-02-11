@@ -12,10 +12,10 @@ const Register: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
     e.preventDefault();
     setError('');
     try {
-      const response = await window.ironcord.register({ 
-        email, 
-        password, 
-        irc_nick: ircNick 
+      const response = await window.ironcord.register({
+        email,
+        password,
+        irc_nick: ircNick
       });
       if (response.success) {
         setUser(response.user);
@@ -31,7 +31,7 @@ const Register: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
     <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
       <div className="w-full max-w-md rounded-lg bg-gray-800 p-8 shadow-xl">
         <h2 className="mb-6 text-center text-3xl font-bold text-white">Create an account</h2>
-        
+
         {error && (
           <div className="mb-4 rounded bg-red-500/10 p-3 text-sm text-red-500">
             {error}
@@ -40,10 +40,11 @@ const Register: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-gray-400">
+            <label htmlFor="reg-email" className="mb-2 block text-xs font-bold uppercase text-gray-400">
               Email
             </label>
             <input
+              id="reg-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -52,10 +53,11 @@ const Register: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
             />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-gray-400">
+            <label htmlFor="reg-nick" className="mb-2 block text-xs font-bold uppercase text-gray-400">
               IRC Nickname
             </label>
             <input
+              id="reg-nick"
               type="text"
               value={ircNick}
               onChange={(e) => setIrcNick(e.target.value)}
@@ -64,10 +66,11 @@ const Register: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
             />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-gray-400">
+            <label htmlFor="reg-password" className="mb-2 block text-xs font-bold uppercase text-gray-400">
               Password
             </label>
             <input
+              id="reg-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -82,7 +85,7 @@ const Register: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
             Continue
           </button>
         </form>
-        
+
         <p className="mt-4 text-sm text-gray-400">
           Already have an account?{' '}
           <button onClick={onSwitch} className="text-indigo-400 hover:underline">

@@ -1,12 +1,17 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { dbService } from '../services/db.service';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 
+// All guild routes require authentication
+router.use(authMiddleware);
+
 // Create Guild
-router.post('/', async (req: Request, res: Response) => {
-  const { name, ownerId } = req.body;
-  
+router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+  const { name } = req.body;
+  const ownerId = req.user!.userId;
+
   // Simple namespace generation: #name-
   const namespacePrefix = `#${name.toLowerCase().replace(/\s+/g, '')}-`;
 
@@ -31,7 +36,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // Create Channel
-router.post('/:guildId/channels', async (req: Request, res: Response) => {
+router.post('/:guildId/channels', async (req: AuthenticatedRequest, res: Response) => {
   const { guildId } = req.params;
   const { name, topic } = req.body;
 
@@ -54,9 +59,9 @@ router.post('/:guildId/channels', async (req: Request, res: Response) => {
   }
 });
 
-// Get User Guilds
-router.get('/user/:userId', async (req: Request, res: Response) => {
-  const { userId } = req.params;
+// Get User Guilds (uses token userId)
+router.get('/mine', async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.userId;
   try {
     const result = await dbService.query(
       `SELECT g.* FROM guilds g 
@@ -72,7 +77,7 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
 });
 
 // Get Guild Channels
-router.get('/:guildId/channels', async (req: Request, res: Response) => {
+router.get('/:guildId/channels', async (req: AuthenticatedRequest, res: Response) => {
   const { guildId } = req.params;
   try {
     const result = await dbService.query('SELECT * FROM channels WHERE guild_id = $1', [guildId]);

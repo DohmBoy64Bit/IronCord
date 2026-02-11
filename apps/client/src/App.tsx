@@ -8,12 +8,12 @@ import Chat from './components/Chat';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'login' | 'register'>('login');
-  const { user, setUser, setGuilds, addMessage } = useStore();
+  const { user, setUser, setGuilds, addMessage, setMessages } = useStore();
 
   useEffect(() => {
     if (user) {
-      // 1. Fetch guilds
-      window.ironcord.getMyGuilds(user.id).then((guilds) => {
+      // 1. Fetch guilds (no userId needed — token-based)
+      window.ironcord.getMyGuilds().then((guilds: any) => {
         setGuilds(guilds);
       });
 
@@ -25,17 +25,32 @@ const App: React.FC = () => {
       });
 
       // 3. Setup event listeners
-      window.ironcord.onIRCMessage((msg) => {
+      window.ironcord.onIRCMessage((msg: any) => {
         addMessage(msg.channel, {
           id: msg.id || Math.random().toString(36),
           channel: msg.channel,
           author: msg.author,
           content: msg.content,
-          timestamp: msg.timestamp || Date.now(),
+          timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
         });
       });
 
-      window.ironcord.onIRCError((err) => {
+      // 4. Handle chat history replay
+      window.ironcord.onIRCHistory((historyMessages: any[]) => {
+        if (!historyMessages || historyMessages.length === 0) return;
+
+        const channel = historyMessages[0].channel;
+        const formatted = historyMessages.map((msg: any) => ({
+          id: Math.random().toString(36),
+          channel: msg.channel,
+          author: msg.author,
+          content: msg.content,
+          timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
+        }));
+        setMessages(channel, formatted);
+      });
+
+      window.ironcord.onIRCError((err: any) => {
         console.error('IRC Error:', err);
       });
     }

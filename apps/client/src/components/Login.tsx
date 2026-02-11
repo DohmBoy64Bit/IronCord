@@ -27,7 +27,7 @@ const Login: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
       <div className="w-full max-w-md rounded-lg bg-gray-800 p-8 shadow-xl">
         <h2 className="mb-6 text-center text-3xl font-bold text-white">Welcome back!</h2>
         <p className="mb-8 text-center text-gray-400">We're so excited to see you again!</p>
-        
+
         {error && (
           <div className="mb-4 rounded bg-red-500/10 p-3 text-sm text-red-500">
             {error}
@@ -36,10 +36,11 @@ const Login: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-gray-400">
+            <label htmlFor="email" className="mb-2 block text-xs font-bold uppercase text-gray-400">
               Email
             </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -48,10 +49,11 @@ const Login: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
             />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase text-gray-400">
+            <label htmlFor="password" className="mb-2 block text-xs font-bold uppercase text-gray-400">
               Password
             </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -66,7 +68,7 @@ const Login: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
             Log In
           </button>
         </form>
-        
+
         <p className="mt-4 text-sm text-gray-400">
           Need an account?{' '}
           <button onClick={onSwitch} className="text-indigo-400 hover:underline">

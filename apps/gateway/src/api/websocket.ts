@@ -1,7 +1,10 @@
 import { Server as SocketServer, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
+import jwt from 'jsonwebtoken';
 import { IRCClient } from '../irc-client';
 import { dbService } from '../services/db.service';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'ironcord_secret_key_change_me';
 
 export class WebSocketServer {
   private io: SocketServer;
@@ -14,11 +17,28 @@ export class WebSocketServer {
       },
     });
 
-    this.io.on('connection', (socket: Socket) => {
-      console.log('Client connected:', socket.id);
+    // Authenticate socket connections
+    this.io.use((socket, next) => {
+      const token = socket.handshake.auth?.token;
+      if (!token) {
+        return next(new Error('Authentication required'));
+      }
 
-      socket.on('irc:connect', (payload: { userId: string, config: any }) => {
-        this.connectToIRC(socket, payload.userId, payload.config);
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+        (socket as any).userId = decoded.userId;
+        next();
+      } catch (err) {
+        next(new Error('Invalid or expired token'));
+      }
+    });
+
+    this.io.on('connection', (socket: Socket) => {
+      const userId = (socket as any).userId;
+      console.log('Client connected:', socket.id, 'User:', userId);
+
+      socket.on('irc:connect', (payload: { config: any }) => {
+        this.connectToIRC(socket, userId, payload.config);
       });
 
       socket.on('irc:message', (payload: { channel: string; message: string }) => {
@@ -41,10 +61,10 @@ export class WebSocketServer {
 
   private async connectToIRC(socket: Socket, userId: string, config: any) {
     const client = new IRCClient(config);
-    
+
     client.on('registered', async () => {
       socket.emit('irc:registered');
-      
+
       // Auto-join user's channels
       try {
         const result = await dbService.query(
@@ -54,14 +74,25 @@ export class WebSocketServer {
            WHERE gm.user_id = $1`,
           [userId]
         );
-        
+
         for (const row of result.rows) {
-          console.log(`Auto-joining ${row.irc_channel_name} for user ${userId}`);
           client.join(row.irc_channel_name);
+          // Fetch recent history for each channel
+          setTimeout(() => {
+            client.fetchHistory(row.irc_channel_name, 50);
+          }, 500);
         }
       } catch (err) {
         console.error('Error auto-joining channels:', err);
       }
+    });
+
+    client.on('history', (messages) => {
+      socket.emit('irc:history', messages);
+    });
+
+    client.on('reconnecting', (info) => {
+      socket.emit('irc:reconnecting', info);
     });
 
     client.on('message', (msg) => {

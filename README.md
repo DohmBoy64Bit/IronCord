@@ -6,94 +6,108 @@
 
 IronCord follows a **Client-Gateway-Server** model:
 
-1.  **Desktop Client (Frontend):** Electron + React. Handles UI rendering and state.
-2.  **Gateway (Middleware):** Node.js. Maintains persistent TCP connections to the IRCd, manages HTTP uploads, and serves WebSocket events to the client.
-3.  **Core (Backend):** Ergo IRCd. Handles message routing, presence, and channel state.
-4.  **Persistence (DB):** PostgreSQL. Stores rich metadata not supported by IRC (Avatars, Attachments, Guild hierarchies).
+1.  **Desktop Client:** Electron + React 19 + Tailwind v4 + Zustand.
+2.  **Gateway (Middleware):** Node.js + Express 5 + Socket.IO. Bridges HTTP/WS to raw TCP IRC.
+3.  **Core (Backend):** Ergo IRCd. Handles routing, presence, and history.
+4.  **Persistence (DB):** PostgreSQL 15. Stores users, guilds, and channel metadata.
 
 ```mermaid
-graph TD
-    subgraph Client_Side["Client Side"]
-        UI["React Renderer"] <-->|IPC| Main["Electron Main Process"]
+graph LR
+    subgraph "Desktop Client"
+        UI["React UI"] <-->|IPC| Main["Electron Main"]
     end
 
-    subgraph Cloud_Infrastructure["Cloud Infrastructure"]
-        Main <-->|WebSocket / REST| Gateway["Node.js Bridge API"]
-        Gateway <-->|TCP-IRC| IRCd["Ergo IRC Server"]
-        Gateway <-->|SQL| DB[(PostgreSQL)]
-        IRCd <-->|IRCv3-History| IRC_DB[(BadgerDB / SQLite)]
+    subgraph "Gateway (Node.js)"
+        API["Express API"]
+        WS["Socket.IO"]
+        IRC["IRCClient"]
+        API --> DB
+        WS --> IRC
+        WS --> DB
     end
+
+    subgraph "Infra (Podman)"
+        Ergo["Ergo IRCd"]
+        PG["PostgreSQL"]
+    end
+
+    Main <-->|REST| API
+    Main <-->|WS| WS
+    IRC <-->|TCP| Ergo
+    DB <-->|SQL| PG
 ```
 
 ## 🛠 Tech Stack
 
 | Component | Technology |
 | --- | --- |
-| **Desktop Client** | [Electron](https://www.electronjs.org/) |
-| **UI Framework** | [React](https://react.dev/) + [Tailwind CSS](https://tailwindcss.com/) |
-| **API/Gateway** | [Node.js](https://nodejs.org/) (TypeScript) |
-| **IRC Server** | [Ergo IRCd](https://github.com/ergochat/ergo) (Go) |
-| **Database** | [PostgreSQL](https://www.postgresql.org/) |
-| **State Management** | [Zustand](https://github.com/pmndrs/zustand) |
+| **Monorepo** | NPM Workspaces |
+| **Desktop Client** | [Electron Forge](https://www.electronforge.io/) + [Vite](https://vitejs.dev/) |
+| **UI Framework** | [React 19](https://react.dev/) + [Tailwind CSS v4](https://tailwindcss.com/) |
+| **API/Gateway** | [Node.js](https://nodejs.org/) + [Express 5](https://expressjs.com/) |
+| **Real-time** | [Socket.IO](https://socket.io/) |
+| **Database** | [PostgreSQL 15](https://www.postgresql.org/) |
+| **Testing** | [Vitest](https://vitest.dev/) + [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) |
 
 ## 📁 Folder Structure
 
 -   `apps/client`: Electron + React application.
 -   `apps/gateway`: Node.js middleware bridge.
--   `infra/db`: PostgreSQL infrastructure (Podman/Docker).
--   `infra/ircd`: Ergo IRCd infrastructure (Podman/Docker).
--   `packages/shared`: Shared TypeScript types and utilities.
+-   `packages/shared`: Shared TypeScript interfaces and DTOs.
+-   `infra/db`: PostgreSQL 15 container config.
+-   `infra/ircd`: Ergo IRCd container config.
 
 ## 🚀 Setup & Installation
 
 ### Prerequisites
 
 -   **Node.js** (v20+)
--   **Podman** (or Docker) and **podman-compose**
+-   **Podman** (or Docker) + **podman-compose**
 
 ### 1. Infrastructure Setup
 
-First, launch the core services (IRC Server and Database):
-
 ```bash
-# Start IRC Server (Ergo)
+# Start Core Services
 cd infra/ircd && podman-compose up -d
-
-# Start Database (PostgreSQL)
-cd infra/db && podman-compose up -d
+cd ../db && podman-compose up -d
 ```
 
-### 2. Gateway Setup
+### 2. Build & Run
 
-Install dependencies and start the gateway in development mode:
+From the root directory:
 
 ```bash
-cd apps/gateway
+# Install and build all workspaces
 npm install
-npm run dev
+npm run build
+
+# Start Gateway
+cd apps/gateway && npm start
+
+# Start Client
+cd apps/client && npm start
 ```
 
-### 3. Client Setup
+## 🧪 Testing
 
-Install dependencies and start the Electron application:
+Both Gateway and Client have comprehensive test suites using Vitest.
 
 ```bash
-cd apps/client
-npm install
-npm start
+# Run all tests
+npm test
+
+# Run Gateway tests only
+cd apps/gateway && npm test
+
+# Run Client tests only
+cd apps/client && npm test
 ```
-
-## 🧩 Protocol Mapping (Guilds & Channels)
-
-To emulate Discord "Servers" (Guilds) on a flat IRC network, IronCord utilizes **Namespace Prefixing**:
-
--   **Visual:** User sees Server "Gaming" -> Channel "#general"
--   **Protocol:** Client joins IRC Channel `&gaming-general`
--   **Metadata:** The `guilds` table in PostgreSQL maps the prefix `&gaming-` to the UI entity "Gaming Server".
 
 ## ✨ Core Features
 
--   **Modern Authentication:** Email/Password login flows utilizing SASL for the IRC connection.
+-   **Modern Auth:** Email/Password registration with bcrypt hashing and JWT security.
 -   **Guilds & Channels:** Discord-style server hierarchies mapped to IRC namespaces.
--   **Persistent History:** Leverages Ergo's `CHATHISTORY` extension to replay messages on connect.
--   **Real-time Communication:** Low-latency chat powered by WebSockets and IRCv3.
+-   **IRC Reconnection:** Automatic reconnection with exponential backoff for reliability.
+-   **History Replay:** Leverages IRCv3 `CHATHISTORY` for seamless message replay.
+-   **Premium UI:** Dark mode, glassmorphism, and Lucide icons for a premium feel.
+-   **Type Safety:** Monorepo-wide type sharing via `@ironcord/shared`.

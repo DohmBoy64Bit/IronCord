@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { dbService } from '../services/db.service';
 
 const router = Router();
-const JWT_SECRET = 'ironcord_secret_key_change_me';
+const JWT_SECRET = process.env.JWT_SECRET || 'ironcord_secret_key_change_me';
 
 // Register
 router.post('/register', async (req: Request, res: Response) => {
