@@ -35,6 +35,9 @@ export class IRCClient extends EventEmitter {
   private capsSent: boolean = false;
   private batchMessages: Map<string, Array<{ id: string; author: string; channel: string; content: string; timestamp?: string }>> = new Map();
 
+  // Channel member tracking
+  private channelMembers: Map<string, Set<string>> = new Map();
+
   constructor(private config: IRCConfig, reconnectOptions?: Partial<ReconnectOptions>) {
     super();
     this.reconnectOptions = { ...DEFAULT_RECONNECT, ...reconnectOptions };
@@ -215,6 +218,89 @@ export class IRCClient extends EventEmitter {
     if (command === '001') { // Welcome
       console.log('Connected to IRC network');
       this.emit('registered');
+    }
+
+    // Handle RPL_NAMREPLY (353)
+    if (command === '353') {
+      // params: [nick, type, channel, names]
+      const channel = params[2];
+      const names = params[params.length - 1].split(' ');
+
+      if (!this.channelMembers.has(channel)) {
+        this.channelMembers.set(channel, new Set());
+      }
+
+      const memberSet = this.channelMembers.get(channel)!;
+      for (const name of names) {
+        // Remove prefixes like @, +, etc.
+        const cleanName = name.replace(/^[@+~&%]/, '');
+        if (cleanName) memberSet.add(cleanName);
+      }
+
+      this.emit('members', { channel, members: Array.from(memberSet) });
+    }
+
+    // Handle JOIN
+    if (command === 'JOIN') {
+      const channel = params[0];
+      const nick = prefix?.split('!')[0] || '';
+
+      if (!this.channelMembers.has(channel)) {
+        this.channelMembers.set(channel, new Set());
+      }
+
+      this.channelMembers.get(channel)!.add(nick);
+      this.emit('members', { channel, members: Array.from(this.channelMembers.get(channel)!) });
+    }
+
+    // Handle PART
+    if (command === 'PART') {
+      const channel = params[0];
+      const nick = prefix?.split('!')[0] || '';
+
+      const memberSet = this.channelMembers.get(channel);
+      if (memberSet) {
+        memberSet.delete(nick);
+        this.emit('members', { channel, members: Array.from(memberSet) });
+      }
+    }
+
+    // Handle QUIT
+    if (command === 'QUIT') {
+      const nick = prefix?.split('!')[0] || '';
+
+      for (const [channel, memberSet] of this.channelMembers.entries()) {
+        if (memberSet.has(nick)) {
+          memberSet.delete(nick);
+          this.emit('members', { channel, members: Array.from(memberSet) });
+        }
+      }
+    }
+
+    // Handle KICK
+    if (command === 'KICK') {
+      const channel = params[0];
+      const kickedNick = params[1];
+
+      const memberSet = this.channelMembers.get(channel);
+      if (memberSet) {
+        memberSet.delete(kickedNick);
+        this.emit('members', { channel, members: Array.from(memberSet) });
+      }
+    }
+
+    // Handle NICK
+    if (command === 'NICK') {
+      const oldNick = prefix?.split('!')[0] || '';
+      const newNick = params[0];
+
+      for (const [channel, memberSet] of this.channelMembers.entries()) {
+        if (memberSet.has(oldNick)) {
+          memberSet.delete(oldNick);
+          memberSet.add(newNick);
+          this.emit('members', { channel, members: Array.from(memberSet) });
+        }
+      }
     }
 
     // Handle BATCH start/end

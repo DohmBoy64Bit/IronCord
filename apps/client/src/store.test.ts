@@ -11,6 +11,7 @@ describe('useStore', () => {
             currentGuild: null,
             currentChannel: null,
             messages: {},
+            members: {},
         });
     });
 
@@ -66,5 +67,11 @@ describe('useStore', () => {
         ];
         useStore.getState().setMessages('#c1', msgs);
         expect(useStore.getState().messages['#c1']).toEqual(msgs);
+    });
+
+    it('should set members for a channel', () => {
+        const m = ['alice', 'bob'];
+        useStore.getState().setMembers('#c1', m);
+        expect(useStore.getState().members['#c1']).toEqual(m);
     });
 });

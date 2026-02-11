@@ -92,8 +92,12 @@ ipcMain.handle('irc:connect', (event, { userId, config }) => {
     mainWindow?.webContents.send('irc:message', msg);
   });
 
-  socket.on('irc:history', (data) => {
+  socket.on('irc:history', (data: any) => {
     mainWindow?.webContents.send('irc:history', data);
+  });
+
+  socket.on('irc:members', (data) => {
+    mainWindow?.webContents.send('irc:members', data);
   });
 
   socket.on('irc:error', (err) => {

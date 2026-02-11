@@ -62,12 +62,15 @@ const ChannelList: React.FC = () => {
           </div>
           <div className="flex flex-col truncate">
             <span className="text-xs font-bold text-white truncate">{userNick}</span>
-            <span className="text-[10px] text-gray-400">Online</span>
+            <span className="text-[10px] text-gray-400">Connected</span>
           </div>
         </div>
         <div className="ml-auto flex items-center space-x-1 text-gray-400">
-          <div className="cursor-pointer rounded-md p-1 hover:bg-gray-800">
-            <Settings size={16} />
+          <div
+            className="cursor-pointer rounded-md p-1 hover:bg-gray-800"
+            onClick={() => window.ironcord.onIRCError(err => console.error('Settings Mock Event:', err))}
+          >
+            <Settings data-testid="Settings" size={16} />
           </div>
         </div>
       </div>

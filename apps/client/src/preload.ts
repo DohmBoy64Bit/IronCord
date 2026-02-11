@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld('ironcord', {
   onIRCRegistered: (callback: any) => ipcRenderer.on('irc:registered', () => callback()),
   onIRCMessage: (callback: any) => ipcRenderer.on('irc:message', (event, msg) => callback(msg)),
   onIRCHistory: (callback: any) => ipcRenderer.on('irc:history', (event, data) => callback(data)),
+  onIRCMembers: (callback: any) => ipcRenderer.on('irc:members', (event, data) => callback(data)),
   onIRCError: (callback: any) => ipcRenderer.on('irc:error', (event, err) => callback(err)),
 });

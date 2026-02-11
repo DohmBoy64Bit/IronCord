@@ -18,7 +18,7 @@ function nickColor(nick: string): string {
 }
 
 const Chat: React.FC = () => {
-  const { currentChannel, messages, user } = useStore();
+  const { currentChannel, messages, user, members } = useStore();
   const [input, setInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showMemberList, setShowMemberList] = useState(false);
@@ -28,6 +28,7 @@ const Chat: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const channelMessages = currentChannel ? messages[currentChannel.irc_channel_name] || [] : [];
+  const currentMembers = currentChannel ? members[currentChannel.irc_channel_name] || [] : [];
   const filteredMessages = searchQuery
     ? channelMessages.filter(m => m.content.toLowerCase().includes(searchQuery.toLowerCase()))
     : channelMessages;
@@ -59,10 +60,11 @@ const Chat: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      showToast(`Uploading ${file.name}...`);
-      // Mock upload logic
+      showToast(`Selected ${file.name} (${file.size} bytes)`);
+      console.log('File flow triggered for:', file.name);
+      // Simulate data flow
       setTimeout(() => {
-        showToast(`${file.name} uploaded!`);
+        showToast(`${file.name} ready for delivery!`);
       }, 1500);
     }
   };
@@ -107,7 +109,7 @@ const Chat: React.FC = () => {
         <div className="flex items-center space-x-4 text-gray-400">
           <Bell size={20} className="cursor-pointer hover:text-gray-200" onClick={() => showToast('Notifications')} />
           <Pin data-testid="Pin" size={20} className="cursor-pointer hover:text-gray-200" onClick={() => showToast('Pinned Messages')} />
-          <Users size={20} className={`cursor-pointer hover:text-gray-200 ${showMemberList ? 'text-white' : ''}`} onClick={() => setShowMemberList(!showMemberList)} />
+          <Users data-testid="Users" size={20} className={`cursor-pointer hover:text-gray-200 ${showMemberList ? 'text-white' : ''}`} onClick={() => setShowMemberList(!showMemberList)} />
           <div className="flex h-6 w-36 items-center rounded bg-gray-950 px-1 text-xs">
             <input
               type="text"
@@ -213,7 +215,7 @@ const Chat: React.FC = () => {
         {/* Member List Panel */}
         {showMemberList && (
           <div className="w-60 bg-gray-800 border-l border-gray-950 p-4 overflow-y-auto">
-            <h3 className="text-xs font-bold uppercase text-gray-400 mb-4">Online — 4</h3>
+            <h3 className="text-xs font-bold uppercase text-gray-400 mb-4">Online — {currentMembers.length}</h3>
             <div className="space-y-2">
               <div className="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded-md cursor-pointer transition-colors group">
                 <div className={`flex h-8 w-8 items-center justify-center rounded-full ${nickColor(user?.irc_nick || 'User')}`}>
@@ -222,7 +224,7 @@ const Chat: React.FC = () => {
                 <span className="text-sm text-gray-300 group-hover:text-white font-medium">{user?.irc_nick || 'User'}</span>
               </div>
 
-              {['Alice', 'Bob', 'Charlie'].map(name => (
+              {currentMembers.filter(name => name !== user?.irc_nick).map(name => (
                 <div key={name} className="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded-md cursor-pointer transition-colors group">
                   <div className={`flex h-8 w-8 items-center justify-center rounded-full ${nickColor(name)}`}>
                     <span className="text-xs font-bold text-white uppercase">{name[0]}</span>

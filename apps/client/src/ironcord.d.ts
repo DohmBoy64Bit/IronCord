@@ -16,6 +16,7 @@ interface IronCordAPI {
   onIRCRegistered: (callback: () => void) => void;
   onIRCMessage: (callback: (msg: any) => void) => void;
   onIRCHistory: (callback: (messages: any[]) => void) => void;
+  onIRCMembers: (callback: (data: { channel: string; members: string[] }) => void) => void;
   onIRCError: (callback: (err: any) => void) => void;
 }
 

@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
 
 // Mock window.ironcord API globally
 const mockIroncord = {
@@ -12,6 +13,7 @@ const mockIroncord = {
     onIRCRegistered: vi.fn(),
     onIRCMessage: vi.fn(),
     onIRCHistory: vi.fn(),
+    onIRCMembers: vi.fn(),
     onIRCError: vi.fn(),
 };
 

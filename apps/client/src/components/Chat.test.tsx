@@ -23,7 +23,7 @@ describe('Chat Component', () => {
     });
 
     it('renders channel name and messages when a channel is selected', () => {
-        const channel = { id: 'c1', name: 'general', irc_channel_name: '#general' };
+        const channel = { id: 'c1', guild_id: 'g1', name: 'general', irc_channel_name: '#general' };
         const messages = [
             { id: '1', channel: '#general', author: 'alice', content: 'hello', timestamp: Date.now() },
         ];
@@ -40,7 +40,7 @@ describe('Chat Component', () => {
     });
 
     it('calls sendMessage when form is submitted', async () => {
-        const channel = { id: 'c1', name: 'general', irc_channel_name: '#general' };
+        const channel = { id: 'c1', guild_id: 'g1', name: 'general', irc_channel_name: '#general' };
         useStore.setState({ currentChannel: channel });
         (window.ironcord.sendMessage as any).mockResolvedValue(undefined);
 
@@ -57,7 +57,7 @@ describe('Chat Component', () => {
     });
 
     it('shows feature toast when toolbar icons are clicked', async () => {
-        const channel = { id: 'c1', name: 'general', irc_channel_name: '#general' };
+        const channel = { id: 'c1', guild_id: 'g1', name: 'general', irc_channel_name: '#general' };
         useStore.setState({ currentChannel: channel });
         render(<Chat />);
 
@@ -66,5 +66,27 @@ describe('Chat Component', () => {
         fireEvent.click(pinsButton);
 
         expect(screen.getByText('Pinned Messages — Coming soon!')).toBeInTheDocument();
+    });
+
+    it('renders dynamic members from the store', () => {
+        const channel = { id: 'c1', guild_id: 'g1', name: 'general', irc_channel_name: '#general' };
+        const members = ['alice', 'bob', 'charlie'];
+        useStore.setState({
+            currentChannel: channel,
+            members: { '#general': members }
+        });
+
+        render(<Chat />);
+
+        // Toggle member list if it's hidden by default (the component shows it based on showMemberList state)
+        // Actually, the component renders the list inside {showMemberList && ...}
+        // I need to trigger the member list visibility first.
+        const memberListButton = screen.getByTestId('Users');
+        fireEvent.click(memberListButton);
+
+        expect(screen.getByText('Online — 3')).toBeInTheDocument();
+        expect(screen.getByText('alice')).toBeInTheDocument();
+        expect(screen.getByText('bob')).toBeInTheDocument();
+        expect(screen.getByText('charlie')).toBeInTheDocument();
     });
 });

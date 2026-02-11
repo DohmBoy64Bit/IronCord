@@ -46,6 +46,7 @@ describe('App Component', () => {
             }));
             expect(window.ironcord.onIRCMessage).toHaveBeenCalled();
             expect(window.ironcord.onIRCHistory).toHaveBeenCalled();
+            expect(window.ironcord.onIRCMembers).toHaveBeenCalled();
         });
     });
 });

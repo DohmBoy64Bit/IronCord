@@ -105,6 +105,10 @@ export class WebSocketServer {
       socket.emit('irc:message', msg);
     });
 
+    client.on('members', (data) => {
+      socket.emit('irc:members', data);
+    });
+
     client.on('error', (err) => {
       socket.emit('irc:error', err.message);
     });

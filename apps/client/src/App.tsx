@@ -8,7 +8,7 @@ import Chat from './components/Chat';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'login' | 'register'>('login');
-  const { user, setUser, setGuilds, addMessage, setMessages } = useStore();
+  const { user, setUser, setGuilds, addMessage, setMessages, setMembers } = useStore();
 
   useEffect(() => {
     if (user) {
@@ -55,6 +55,10 @@ const App: React.FC = () => {
 
       window.ironcord.onIRCError((err: any) => {
         console.error('IRC Error:', err);
+      });
+
+      window.ironcord.onIRCMembers((data: { channel: string; members: string[] }) => {
+        setMembers(data.channel, data.members);
       });
     }
   }, [user]);

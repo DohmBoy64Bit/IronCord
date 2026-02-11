@@ -211,4 +211,109 @@ describe('IRCClient', () => {
             expect(mockSocket.end).toHaveBeenCalled();
         });
     });
+
+    describe('Member Tracking', () => {
+        it('should emit members event on 353 (RPL_NAMREPLY)', () => {
+            const membersHandler = vi.fn();
+            client.on('members', membersHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':server 353 TestUser = #channel :alice @bob +charlie\r\n'));
+
+            expect(membersHandler).toHaveBeenCalledWith({
+                channel: '#channel',
+                members: expect.arrayContaining(['alice', 'bob', 'charlie'])
+            });
+        });
+
+        it('should add member and emit on JOIN', () => {
+            const membersHandler = vi.fn();
+            client.on('members', membersHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':alice!user@host JOIN #channel\r\n'));
+
+            expect(membersHandler).toHaveBeenCalledWith({
+                channel: '#channel',
+                members: ['alice']
+            });
+        });
+
+        it('should remove member and emit on PART', () => {
+            const membersHandler = vi.fn();
+            client.on('members', membersHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            // Join first
+            dataHandler?.(Buffer.from(':alice!user@host JOIN #channel\r\n'));
+            dataHandler?.(Buffer.from(':bob!user@host JOIN #channel\r\n'));
+            membersHandler.mockClear();
+
+            dataHandler?.(Buffer.from(':alice!user@host PART #channel\r\n'));
+
+            expect(membersHandler).toHaveBeenCalledWith({
+                channel: '#channel',
+                members: ['bob']
+            });
+        });
+
+        it('should remove member from all channels on QUIT', () => {
+            const membersHandler = vi.fn();
+            client.on('members', membersHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':alice!user@host JOIN #chan1\r\n'));
+            dataHandler?.(Buffer.from(':alice!user@host JOIN #chan2\r\n'));
+            membersHandler.mockClear();
+
+            dataHandler?.(Buffer.from(':alice!user@host QUIT :Bye\r\n'));
+
+            expect(membersHandler).toHaveBeenCalledWith({
+                channel: '#chan1',
+                members: []
+            });
+            expect(membersHandler).toHaveBeenCalledWith({
+                channel: '#chan2',
+                members: []
+            });
+        });
+
+        it('should update member list on NICK change', () => {
+            const membersHandler = vi.fn();
+            client.on('members', membersHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':alice!user@host JOIN #channel\r\n'));
+            membersHandler.mockClear();
+
+            dataHandler?.(Buffer.from(':alice!user@host NICK alice_new\r\n'));
+
+            expect(membersHandler).toHaveBeenCalledWith({
+                channel: '#channel',
+                members: ['alice_new']
+            });
+        });
+
+        it('should remove member on KICK', () => {
+            const membersHandler = vi.fn();
+            client.on('members', membersHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':alice!user@host JOIN #channel\r\n'));
+            membersHandler.mockClear();
+
+            dataHandler?.(Buffer.from(':op!user@host KICK #channel alice :Get out!\r\n'));
+
+            expect(membersHandler).toHaveBeenCalledWith({
+                channel: '#channel',
+                members: []
+            });
+        });
+    });
 });

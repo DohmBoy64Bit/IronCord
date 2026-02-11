@@ -62,6 +62,19 @@ describe('ChannelList Component', () => {
         render(<ChannelList />);
 
         expect(screen.getByText('tester')).toBeInTheDocument();
-        expect(screen.getByText('Online')).toBeInTheDocument();
+        expect(screen.getByText('Connected')).toBeInTheDocument();
+    });
+
+    it('triggers mock event when settings icon is clicked', () => {
+        const guild = { id: 'g1', name: 'G1', irc_namespace_prefix: '#g1-' };
+        useStore.setState({
+            currentGuild: guild,
+            channels: { g1: [] }
+        });
+        render(<ChannelList />);
+
+        const settingsButton = screen.getByTestId('Settings');
+        fireEvent.click(settingsButton);
+        // No crash is success here since it's a console.error mock
     });
 });
