@@ -13,15 +13,15 @@ IronCord follows a **Client-Gateway-Server** model:
 
 ```mermaid
 graph TD
-    subgraph "Client Side"
-        UI[React Renderer] <-->|IPC| Main[Electron Main Process]
+    subgraph Client_Side["Client Side"]
+        UI["React Renderer"] <-->|IPC| Main["Electron Main Process"]
     end
 
-    subgraph "Cloud Infrastructure"
-        Main <-->|WebSocket / REST| Gateway[Node.js Bridge API]
-        Gateway <-->|TCP (IRC Protocol)| IRCd[Ergo IRC Server]
+    subgraph Cloud_Infrastructure["Cloud Infrastructure"]
+        Main <-->|WebSocket / REST| Gateway["Node.js Bridge API"]
+        Gateway <-->|TCP-IRC| IRCd["Ergo IRC Server"]
         Gateway <-->|SQL| DB[(PostgreSQL)]
-        IRCd <-->|IRCv3 History| IRC_DB[(BadgerDB/SQLite)]
+        IRCd <-->|IRCv3-History| IRC_DB[(BadgerDB / SQLite)]
     end
 ```
 
