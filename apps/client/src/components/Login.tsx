@@ -23,7 +23,7 @@ const Login: React.FC<{ onSwitch: () => void }> = ({ onSwitch }) => {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+    <div className="flex h-full w-full items-center justify-center text-white">
       <div className="w-full max-w-md rounded-lg bg-gray-800 p-8 shadow-xl">
         <h2 className="mb-6 text-center text-3xl font-bold text-white">Welcome back!</h2>
         <p className="mb-8 text-center text-gray-400">We're so excited to see you again!</p>

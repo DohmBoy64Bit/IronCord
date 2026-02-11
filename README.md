@@ -1,116 +1,69 @@
 # IronCord
 
-**IronCord** is a Discord-like desktop application built on an IRC backend. It bridges the gap between the stateless, text-only nature of IRC and the stateful, rich-media nature of modern chat platforms.
+A high-fidelity, Discord-like desktop experience powered by an IRC backend. IronCord bridges the simplicity of IRC with the rich media and persistence of modern chat platforms.
+
+## 🚀 Core Tech Stack
+
+- **Frontend**: [React 19](https://react.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [Zustand](https://zustand-demo.pmnd.rs/)
+- **Desktop**: [Electron Forge](https://www.electronforge.io/) + [Vite](https://vitejs.dev/)
+- **Gateway**: [Node.js](https://nodejs.org/) + [Express 5](https://expressjs.com/), [Socket.IO](https://socket.io/)
+- **Backing Services**: [Ergo IRCd](https://ergo.chat/), [PostgreSQL 15](https://www.postgresql.org/)
+- **Monorepo**: NPM Workspaces
 
 ## 🏛 Architecture
 
-IronCord follows a **Client-Gateway-Server** model:
+IronCord follows a **Client-Gateway-IRC** flow to maintain modern features while staying IRC-native:
 
-1.  **Desktop Client:** Electron + React 19 + Tailwind v4 + Zustand.
-2.  **Gateway (Middleware):** Node.js + Express 5 + Socket.IO. Bridges HTTP/WS to raw TCP IRC.
-3.  **Core (Backend):** Ergo IRCd. Handles routing, presence, and history.
-4.  **Persistence (DB):** PostgreSQL 15. Stores users, guilds, and channel metadata.
+1.  **Desktop Client**: Rich UI communicating via REST and WebSockets to the Gateway.
+2.  **Gateway (Middleware)**: Bridges the high-level API to raw TCP IRC commands and manages persistence in PostgreSQL.
+3.  **Core (IRCd)**: Ergo handles the heavy lifting of message routing, presence, and chat history (`CHATHISTORY`).
 
-```mermaid
-graph LR
-    subgraph "Desktop Client"
-        UI["React UI"] <-->|IPC| Main["Electron Main"]
-    end
+## ✨ Key Features
 
-    subgraph "Gateway (Node.js)"
-        API["Express API"]
-        WS["Socket.IO"]
-        IRC["IRCClient"]
-        API --> DB
-        WS --> IRC
-        WS --> DB
-    end
+- **Discord-like UX**: Guilds, channels, and member lists mapped directly to IRC namespaces.
+- **Persistent History**: Seamless message replay using IRCv3 extensions.
+- **Modern Auth**: Secure email/password registration with JWT-based sessions.
+- **Rich Interaction**: Full support for avatars, emoji pickers, and stickers.
+- **IRC Interoperability**: Standard IRC clients can interact with IronCord users via the same backends.
 
-    subgraph "Infra (Podman)"
-        Ergo["Ergo IRCd"]
-        PG["PostgreSQL"]
-    end
-
-    Main <-->|REST| API
-    Main <-->|WS| WS
-    IRC <-->|TCP| Ergo
-    DB <-->|SQL| PG
-```
-
-## 🛠 Tech Stack
-
-| Component | Technology |
-| --- | --- |
-| **Monorepo** | NPM Workspaces |
-| **Desktop Client** | [Electron Forge](https://www.electronforge.io/) + [Vite](https://vitejs.dev/) |
-| **UI Framework** | [React 19](https://react.dev/) + [Tailwind CSS v4](https://tailwindcss.com/) |
-| **API/Gateway** | [Node.js](https://nodejs.org/) + [Express 5](https://expressjs.com/) |
-| **Real-time** | [Socket.IO](https://socket.io/) |
-| **Database** | [PostgreSQL 15](https://www.postgresql.org/) |
-| **Testing** | [Vitest](https://vitest.dev/) + [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) |
-
-## 📁 Folder Structure
-
--   `apps/client`: Electron + React application.
--   `apps/gateway`: Node.js middleware bridge.
--   `packages/shared`: Shared TypeScript interfaces and DTOs.
--   `infra/db`: PostgreSQL 15 container config.
--   `infra/ircd`: Ergo IRCd container config.
-
-## 🚀 Setup & Installation
+## 🛠 Getting Started
 
 ### Prerequisites
+- Node.js v20+
+- Podman/Docker + podman-compose
 
--   **Node.js** (v20+)
--   **Podman** (or Docker) + **podman-compose**
-
-### 1. Infrastructure Setup
-
+### 1. Spin up Infrastructure
 ```bash
-# Start Core Services
+# Start Ergo IRCd and PostgreSQL
 cd infra/ircd && podman-compose up -d
 cd ../db && podman-compose up -d
 ```
 
-### 2. Build & Run
-
-From the root directory:
-
+### 2. Install & Run
+From the root:
 ```bash
-# Install and build all workspaces
 npm install
 npm run build
 
-# Start Gateway
+# Start the Gateway and Client (separate terminals)
 cd apps/gateway && npm start
-
-# Start Client
 cd apps/client && npm start
 ```
 
-## 🧪 Testing
+## ⚙️ Configuration
 
-Both Gateway and Client have comprehensive test suites using Vitest.
+### Gateway Environment Variables
+| Variable | Description | Default |
+| --- | --- | --- |
+| `PORT` | Gateway API port | `3000` |
+| `JWT_SECRET` | Secret for token signing | `ironcord_secret...` |
+| `DB_HOST` | PostgreSQL host | `localhost` |
+| `DB_NAME` | Database name | `ironcord` |
 
-```bash
-# Run all tests
-npm test
-
-# Run Gateway tests only
-cd apps/gateway && npm test
-
-# Run Client tests only
-cd apps/client && npm test
-```
-
-## ✨ Core Features
-
--   **Modern Auth:** Email/Password registration with bcrypt hashing and JWT security.
--   **Guilds & Channels:** Discord-style server hierarchies mapped to IRC namespaces.
--   **Search & Discovery:** Real-time local message search for channel history.
--   **Member List:** Functional side panel showing online status and users.
--   **Interactive Elements:** Full support for stickers, gifts, and a built-in emoji picker.
--   **IRC Reconnection:** Automatic reconnection with exponential backoff for reliability.
--   **History Replay:** Leverages IRCv3 `CHATHISTORY` for seamless message replay.
--   **Premium UI:** Dark mode, glassmorphism, and Lucide icons for a premium feel.
--   **Type Safety:** Monorepo-wide type sharing via `@ironcord/shared`.
+### API Endpoints (Gateway)
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/auth/register` | User registration |
+| `POST` | `/auth/login` | User authentication |
+| `POST` | `/guilds` | Create a new guild |
+| `GET` | `/guilds/mine` | List user's guilds |

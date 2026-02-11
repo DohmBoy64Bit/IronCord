@@ -47,6 +47,6 @@ describe('Sidebar Component', () => {
 
         fireEvent.click(addButton);
 
-        expect(screen.getByText('Create a Server')).toBeInTheDocument();
+        expect(screen.getByText('Create your Guild')).toBeInTheDocument();
     });
 });

@@ -29,11 +29,12 @@ describe('Guilds Routes', () => {
     });
 
     describe('POST /guilds', () => {
-        it('should create a new guild', async () => {
+        it('should create a new guild with a default #general channel', async () => {
             const mockGuild = { id: 'guild123', name: 'Test Guild', owner_id: 'user123', irc_namespace_prefix: '#testguild-' };
             (dbService.query as any)
                 .mockResolvedValueOnce({ rows: [mockGuild] }) // Insert guild
-                .mockResolvedValueOnce({ rows: [] }); // Add member
+                .mockResolvedValueOnce({ rows: [] }) // Add member
+                .mockResolvedValueOnce({ rows: [] }); // Add #general channel
 
             const res = await request(app)
                 .post('/guilds')
@@ -41,9 +42,17 @@ describe('Guilds Routes', () => {
 
             expect(res.status).toBe(201);
             expect(res.body).toEqual(mockGuild);
+
+            // Should insert guild
             expect(dbService.query).toHaveBeenCalledWith(
                 expect.stringContaining('INSERT INTO guilds'),
                 ['Test Guild', 'user123', '#testguild-']
+            );
+
+            // Should insert #general channel
+            expect(dbService.query).toHaveBeenCalledWith(
+                expect.stringContaining('INSERT INTO channels'),
+                ['guild123', 'general', '#testguild-general', expect.any(String)]
             );
         });
 

@@ -21,11 +21,19 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       [name, ownerId, namespacePrefix]
     );
     const guild = result.rows[0];
+    const guildId = guild.id;
 
     // Add owner as member
     await dbService.query(
       'INSERT INTO guild_members (guild_id, user_id) VALUES ($1, $2)',
-      [guild.id, ownerId]
+      [guildId, ownerId]
+    );
+
+    // Auto-create #general channel
+    const generalChannelName = `${namespacePrefix}general`;
+    await dbService.query(
+      'INSERT INTO channels (guild_id, name, irc_channel_name, topic) VALUES ($1, $2, $3, $4)',
+      [guildId, 'general', generalChannelName, 'Welcome to your new server!']
     );
 
     res.status(201).json(guild);
