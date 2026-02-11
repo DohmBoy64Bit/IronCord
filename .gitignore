@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+.cache/
+*.log
+.env
+.DS_Store
+*.tsbuildinfo
+
+# Project specific ignores
+CLAUDE.md
+.zenflow/
+UIMockups/

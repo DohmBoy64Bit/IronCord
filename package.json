@@ -1,0 +1,18 @@
+{
+  "name": "ironcord",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discord-like desktop application built on an IRC backend",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm test --workspaces"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0"
+  }
+}

@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ironcord-db
+    environment:
+      POSTGRES_USER: ironcord
+      POSTGRES_PASSWORD: ironcord_password
+      POSTGRES_DB: ironcord
+    ports:
+      - "5432:5432"
+    volumes:
+      - ironcord-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  ironcord-db-data:
