@@ -51,13 +51,21 @@ describe('useStore', () => {
 
     it('should add messages to a channel', () => {
         const msg = { id: '1', channel: '#c1', author: 'a', content: 'hi', timestamp: Date.now() };
+        const initialState = useStore.getState();
         useStore.getState().addMessage('#c1', msg);
-        expect(useStore.getState().messages['#c1']).toContain(msg);
+
+        const newState = useStore.getState();
+        expect(newState.messages['#c1']).toContain(msg);
+        expect(newState.messages).not.toBe(initialState.messages); // Verify immutability
 
         const msg2 = { id: '2', channel: '#c1', author: 'b', content: 'hey', timestamp: Date.now() };
+        const midState = useStore.getState();
         useStore.getState().addMessage('#c1', msg2);
-        expect(useStore.getState().messages['#c1']).toHaveLength(2);
-        expect(useStore.getState().messages['#c1'][1]).toEqual(msg2);
+
+        const finalState = useStore.getState();
+        expect(finalState.messages['#c1']).toHaveLength(2);
+        expect(finalState.messages['#c1'][1]).toEqual(msg2);
+        expect(finalState.messages['#c1']).not.toBe(midState.messages['#c1']); // Verify inner array immutability
     });
 
     it('should set all messages for a channel', () => {

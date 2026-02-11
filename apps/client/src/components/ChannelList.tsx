@@ -29,7 +29,7 @@ const ChannelList: React.FC = () => {
   }, [currentGuild]);
 
   const guildChannels = currentGuild ? channels[currentGuild.id] || [] : [];
-  const userNick = user?.irc_nick || 'User';
+  const userNick = user?.irc_nick || 'Unknown User';
 
   return (
     <div className="flex w-60 flex-col bg-gray-900">
@@ -68,7 +68,11 @@ const ChannelList: React.FC = () => {
         <div className="ml-auto flex items-center space-x-1 text-gray-400">
           <div
             className="cursor-pointer rounded-md p-1 hover:bg-gray-800"
-            onClick={() => window.ironcord.onIRCError(err => console.error('Settings Mock Event:', err))}
+            onClick={() => {
+              // Standardized placeholder interaction
+              const event = new CustomEvent('show-toast', { detail: 'Settings' });
+              window.dispatchEvent(event);
+            }}
           >
             <Settings data-testid="Settings" size={16} />
           </div>

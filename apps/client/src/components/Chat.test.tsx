@@ -65,7 +65,7 @@ describe('Chat Component', () => {
         const pinsButton = screen.getByTestId('Pin');
         fireEvent.click(pinsButton);
 
-        expect(screen.getByText('Pinned Messages — Coming soon!')).toBeInTheDocument();
+        expect(screen.getByText('Pinned Messages is not available in the preview.')).toBeInTheDocument();
     });
 
     it('renders dynamic members from the store', () => {

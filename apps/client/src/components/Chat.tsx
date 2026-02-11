@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../store';
 import { Hash, Bell, Pin, Users, Search, Inbox, HelpCircle, PlusCircle, Gift, Sticker, Smile, X } from 'lucide-react';
 
@@ -26,6 +26,7 @@ const Chat: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const channelMessages = currentChannel ? messages[currentChannel.irc_channel_name] || [] : [];
   const currentMembers = currentChannel ? members[currentChannel.irc_channel_name] || [] : [];
@@ -60,19 +61,26 @@ const Chat: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      showToast(`Selected ${file.name} (${file.size} bytes)`);
-      console.log('File flow triggered for:', file.name);
+      showToast(`Selected ${file.name} — Uploading...`);
       // Simulate data flow
       setTimeout(() => {
-        showToast(`${file.name} ready for delivery!`);
-      }, 1500);
+        showToast(`${file.name} successfully uploaded.`);
+      }, 2000);
     }
   };
 
-  const showToast = (feature: string) => {
-    setToast(`${feature} — Coming soon!`);
-    setTimeout(() => setToast(null), 2000);
-  };
+  const showToast = useCallback((feature: string) => {
+    setToast(`${feature} is not available in the preview.`);
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalToast = (e: any) => {
+      if (e.detail) showToast(e.detail);
+    };
+    window.addEventListener('show-toast', handleGlobalToast);
+    return () => window.removeEventListener('show-toast', handleGlobalToast);
+  }, [showToast]);
 
   if (!currentChannel) {
     return (
@@ -114,11 +122,12 @@ const Chat: React.FC = () => {
             <input
               type="text"
               placeholder="Search"
+              ref={searchInputRef}
               className="w-full bg-transparent px-1 outline-hidden"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            {searchQuery ? <X size={14} className="cursor-pointer" onClick={() => setSearchQuery('')} /> : <Search size={14} />}
+            {searchQuery ? <X size={14} className="cursor-pointer" onClick={() => setSearchQuery('')} /> : <Search size={14} className="cursor-pointer" onClick={() => searchInputRef.current?.focus()} />}
           </div>
           <Inbox size={20} className="cursor-pointer hover:text-gray-200" onClick={() => showToast('Inbox')} />
           <HelpCircle size={20} className="cursor-pointer hover:text-gray-200" onClick={() => showToast('Help')} />
@@ -218,10 +227,10 @@ const Chat: React.FC = () => {
             <h3 className="text-xs font-bold uppercase text-gray-400 mb-4">Online — {currentMembers.length}</h3>
             <div className="space-y-2">
               <div className="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded-md cursor-pointer transition-colors group">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${nickColor(user?.irc_nick || 'User')}`}>
-                  <span className="text-xs font-bold text-white uppercase">{user?.irc_nick?.[0] || 'U'}</span>
+                <div className={`flex h-8 w-8 items-center justify-center rounded-full ${nickColor(user?.irc_nick || 'Unknown User')}`}>
+                  <span className="text-xs font-bold text-white uppercase">{user?.irc_nick?.[0] || '?'}</span>
                 </div>
-                <span className="text-sm text-gray-300 group-hover:text-white font-medium">{user?.irc_nick || 'User'}</span>
+                <span className="text-sm text-gray-300 group-hover:text-white font-medium">{user?.irc_nick || 'Unknown User'} (You)</span>
               </div>
 
               {currentMembers.filter(name => name !== user?.irc_nick).map(name => (

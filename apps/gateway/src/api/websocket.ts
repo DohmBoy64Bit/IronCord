@@ -90,6 +90,7 @@ export class WebSocketServer {
         }
       } catch (err) {
         console.error('Error auto-joining channels:', err);
+        socket.emit('irc:error', 'Failed to auto-join some channels');
       }
     });
 

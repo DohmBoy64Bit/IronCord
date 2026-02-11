@@ -94,6 +94,38 @@ describe('IRCClient', () => {
             expect(reqCall).toContain('server-time');
         });
 
+        it('should handle multiline CAP LS with continuations', () => {
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            // First line of multiline CAP LS
+            dataHandler?.(Buffer.from(':server CAP * LS * :sasl echo-message\r\n'));
+            // Second line (final)
+            dataHandler?.(Buffer.from(':server CAP * LS :server-time batch\r\n'));
+
+            const writes = mockSocket.write.mock.calls.map(([data]: string[]) => data.trim());
+            const reqCalls = writes.filter((w: string) => w.startsWith('CAP REQ'));
+            expect(reqCalls).toHaveLength(2);
+            expect(reqCalls[0]).toContain('sasl');
+            expect(reqCalls[0]).toContain('echo-message');
+            expect(reqCalls[1]).toContain('server-time');
+            expect(reqCalls[1]).toContain('batch');
+        });
+
+        it('should not request sasl if password is missing', () => {
+            const configNoPass = { ...config, password: undefined };
+            const clientNoPass = new IRCClient(configNoPass);
+            clientNoPass.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':server CAP * LS :sasl echo-message\r\n'));
+
+            const writes = mockSocket.write.mock.calls.map(([data]: string[]) => data.trim());
+            const reqCall = writes.find((w: string) => w.startsWith('CAP REQ'));
+            expect(reqCall).not.toContain('sasl');
+            expect(reqCall).toContain('echo-message');
+        });
+
         it('should start SASL auth on CAP ACK with sasl', () => {
             client.connect();
             const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
@@ -161,6 +193,27 @@ describe('IRCClient', () => {
 
             const writes = mockSocket.write.mock.calls.map(([data]: string[]) => data.trim());
             expect(writes).toContain('CAP END');
+        });
+
+        it('should emit error on SASL failure (904)', () => {
+            const errorHandler = vi.fn();
+            client.on('error', errorHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':server 904 TestUser :SASL authentication failed\r\n'));
+
+            expect(errorHandler).toHaveBeenCalledWith(expect.objectContaining({ message: 'SASL Authentication Failed' }));
+        });
+
+        it('should attempt registration on SASL failure if account does not exist', () => {
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from(':server 904 TestUser :Account does not exist\r\n'));
+
+            const writes = mockSocket.write.mock.calls.map(([data]: string[]) => data.trim());
+            expect(writes).toContain('REGISTER TestUser testpass');
         });
     });
 
@@ -314,6 +367,89 @@ describe('IRCClient', () => {
                 channel: '#channel',
                 members: []
             });
+        });
+    });
+
+    describe('Batch Processing', () => {
+        it('should collect and emit history messages in a batch', () => {
+            const historyHandler = vi.fn();
+            client.on('history', historyHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from('BATCH +batch1 chathistory\r\n'));
+            dataHandler?.(Buffer.from('@time=2024-01-01T00:00:00.000Z;batch=batch1 :user PRIVMSG #chan :msg1\r\n'));
+            dataHandler?.(Buffer.from('@time=2024-01-01T00:00:01.000Z;batch=batch1 :user PRIVMSG #chan :msg2\r\n'));
+            dataHandler?.(Buffer.from('BATCH -batch1\r\n'));
+
+            expect(historyHandler).toHaveBeenCalledWith(expect.arrayContaining([
+                expect.objectContaining({ content: 'msg1', timestamp: '2024-01-01T00:00:00.000Z' }),
+                expect.objectContaining({ content: 'msg2', timestamp: '2024-01-01T00:00:01.000Z' })
+            ]));
+        });
+
+        it('should not emit if batch is empty', () => {
+            const historyHandler = vi.fn();
+            client.on('history', historyHandler);
+            client.connect();
+            const dataHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'data')?.[1];
+
+            dataHandler?.(Buffer.from('BATCH +batch1 chathistory\r\n'));
+            dataHandler?.(Buffer.from('BATCH -batch1\r\n'));
+
+            expect(historyHandler).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Reconnection Logic', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('should attempt reconnect on close if not intentional', () => {
+            const clientWithReconnect = new IRCClient(config, { maxRetries: 2, initialDelay: 100 });
+            clientWithReconnect.connect();
+            const closeHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'close')?.[1];
+
+            // Simulate socket closing unexpectedly
+            closeHandler?.();
+
+            expect(vi.getTimerCount()).toBe(1);
+            vi.advanceTimersByTime(100);
+
+            // Should have called connect again (mockSocket.connect will be called by new net.Socket instance)
+            expect(mockSocket.connect).toHaveBeenCalledTimes(2);
+        });
+
+        it('should emit reconnect_failed after max retries', () => {
+            const failedHandler = vi.fn();
+            const clientWithReconnect = new IRCClient(config, { maxRetries: 1, initialDelay: 100 });
+            clientWithReconnect.on('reconnect_failed', failedHandler);
+            clientWithReconnect.connect();
+            const closeHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'close')?.[1];
+
+            // First failure
+            closeHandler?.();
+            vi.advanceTimersByTime(100);
+
+            // Second failure (reaches maxRetries=1)
+            closeHandler?.();
+
+            expect(failedHandler).toHaveBeenCalled();
+        });
+
+        it('should not reconnect if disconnect was intentional', () => {
+            client.connect();
+            client.disconnect();
+            const closeHandler = mockSocket.on.mock.calls.find(([event]: string[]) => event === 'close')?.[1];
+
+            closeHandler?.();
+
+            expect(vi.getTimerCount()).toBe(0);
         });
     });
 });

@@ -126,17 +126,11 @@ describe('WebSocketServer', () => {
 
             mockSocket.emit('irc:connect', { config });
 
-            // Wait for async connectToIRC
-            await new Promise(resolve => setImmediate(resolve));
+            // Helper to wait for event propagation without sleep loops
+            await new Promise(resolve => process.nextTick(resolve));
 
             expect(IRCClient).toHaveBeenCalledWith(config);
-            // Wait for internal map update
-            let client;
-            for (let i = 0; i < 10; i++) {
-                client = (server as any).userIRCConnections.get('socket123');
-                if (client) break;
-                await new Promise(resolve => setTimeout(resolve, 0));
-            }
+            const client = (server as any).userIRCConnections.get('socket123');
             expect(client).toBeDefined();
             expect(mockIRCEmitter.connect).toHaveBeenCalled();
         });
@@ -145,13 +139,8 @@ describe('WebSocketServer', () => {
             onConnection(mockSocket);
             mockSocket.emit('irc:connect', { config: {} });
 
-            await new Promise(resolve => setImmediate(resolve));
-            let client;
-            for (let i = 0; i < 10; i++) {
-                client = (server as any).userIRCConnections.get('socket123');
-                if (client) break;
-                await new Promise(resolve => setTimeout(resolve, 0));
-            }
+            await new Promise(resolve => process.nextTick(resolve));
+            const client = (server as any).userIRCConnections.get('socket123');
             expect(client).toBeDefined();
 
             mockSocket.emit('irc:message', { channel: '#test', message: 'hello' });
@@ -174,11 +163,24 @@ describe('WebSocketServer', () => {
             mockIRCEmitter.emit('registered');
 
             // Wait for async query in handler
-            await new Promise(resolve => setImmediate(resolve));
+            await new Promise(resolve => process.nextTick(resolve));
 
             expect(mockSocket.emit).toHaveBeenCalledWith('irc:registered');
             expect(dbService.query).toHaveBeenCalled();
             expect(mockIRCEmitter.join).toHaveBeenCalledWith('#chan1');
+        });
+
+        it('should emit irc:error on auto-join failure', async () => {
+            onConnection(mockSocket);
+            mockSocket.emit('irc:connect', { config: {} });
+
+            await new Promise(resolve => process.nextTick(resolve));
+            (dbService.query as any).mockRejectedValue(new Error('db down'));
+
+            mockIRCEmitter.emit('registered');
+            await new Promise(resolve => process.nextTick(resolve));
+
+            expect(mockSocket.emit).toHaveBeenCalledWith('irc:error', 'Failed to auto-join some channels');
         });
 
         it('should relay IRC messages to socket', async () => {
@@ -205,6 +207,27 @@ describe('WebSocketServer', () => {
 
             expect(mockIRCEmitter.disconnect).toHaveBeenCalled();
             expect((server as any).userIRCConnections.has('socket123')).toBe(false);
+        });
+    });
+
+    describe('Production Environment', () => {
+        it('should use CLIENT_ORIGIN in production', () => {
+            const originalNodeEnv = process.env.NODE_ENV;
+            const originalClientOrigin = process.env.CLIENT_ORIGIN;
+            process.env.NODE_ENV = 'production';
+            process.env.CLIENT_ORIGIN = 'https://ironcord.chat';
+
+            new WebSocketServer({} as any);
+
+            expect(SocketServer).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+                cors: expect.objectContaining({
+                    origin: 'https://ironcord.chat'
+                })
+            }));
+
+            // Restore
+            process.env.NODE_ENV = originalNodeEnv;
+            process.env.CLIENT_ORIGIN = originalClientOrigin;
         });
     });
 });
