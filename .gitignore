@@ -11,3 +11,4 @@ build/
 CLAUDE.md
 .zenflow/
 UIMockups/
+.agent/
