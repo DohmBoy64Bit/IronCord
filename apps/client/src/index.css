@@ -4,9 +4,16 @@ body {
   margin: 0;
   padding: 0;
   background-color: #313338;
-  /* Discord dark grey */
+  /* Discord dark grey - fallback */
+  background-image: linear-gradient(to bottom right, #2b2d31, #1e1f22);
   color: white;
   overflow: hidden;
+}
+
+.glass-panel {
+  backdrop-filter: blur(12px);
+  background: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .drag-region {

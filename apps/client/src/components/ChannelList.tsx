@@ -74,7 +74,7 @@ const ChannelList: React.FC = () => {
   };
 
   return (
-    <div className="flex w-60 flex-col bg-gray-900/95 backdrop-blur-md border-r border-white/5">
+    <div className="glass-panel flex w-60 flex-col bg-black/20 backdrop-blur-lg border-x-0 my-1 h-[calc(100vh-8px)]">
       <div className="flex h-12 cursor-pointer items-center justify-between border-b border-black/20 px-4 font-bold text-white shadow-sm transition-colors hover:bg-white/5">
         {currentGuild ? currentGuild.name : 'Direct Messages'}
         {currentGuild && <ChevronDown size={20} />}
@@ -129,7 +129,7 @@ const ChannelList: React.FC = () => {
         {showStatusMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowStatusMenu(false)} />
-            <div className="absolute bottom-14 left-2 z-50 w-56 rounded-lg bg-gray-950 p-2 shadow-xl border border-white/10 ring-1 ring-black/50">
+            <div className="glass-panel absolute bottom-14 left-2 z-50 w-56 rounded-lg bg-black/80 backdrop-blur-xl p-2 shadow-xl border-white/10 ring-1 ring-black/50">
               <div className="space-y-1">
                 {(['online', 'idle', 'dnd', 'invisible'] as const).map((status) => (
                   <button

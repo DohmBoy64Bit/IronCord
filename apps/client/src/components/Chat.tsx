@@ -122,7 +122,7 @@ const Chat: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-gray-800">
+    <div className="glass-panel flex flex-1 flex-col bg-transparent backdrop-blur-md rounded-r-lg my-1 mr-1 h-[calc(100vh-8px)] border-l-0">
       {/* Toast */}
       {toast && (
         <div className="absolute top-16 right-4 z-50 rounded-lg bg-gray-900 px-4 py-2 text-sm text-gray-300 shadow-lg border border-gray-700">
@@ -196,7 +196,7 @@ const Chat: React.FC = () => {
           {/* Input Area */}
           <div className="px-4 pb-6 relative">
             {showEmojiPicker && (
-              <div className="absolute bottom-20 right-4 z-50 rounded-lg bg-gray-900 p-3 shadow-2xl border border-gray-700 w-64">
+              <div className="glass-panel absolute bottom-20 right-4 z-50 rounded-lg bg-black/80 backdrop-blur-xl p-3 shadow-2xl border-gray-700 w-64">
                 <div className="grid grid-cols-6 gap-2">
                   {['😀', '😂', '😍', '👍', '🔥', '✨', '🚀', '🎉', '💡', '💯', '👋', '👀', '❤️', '🎉', '🤔', '😎', '🙌', '⭐'].map(emoji => (
                     <button
@@ -212,7 +212,7 @@ const Chat: React.FC = () => {
             )}
 
             {/* Darker input background for better contrast */}
-            <form onSubmit={handleSendMessage} className="flex items-center rounded-lg bg-[#383a40] px-4 py-2">
+            <form onSubmit={handleSendMessage} className="glass-panel flex items-center rounded-lg bg-black/50 px-4 py-2 border-0">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -248,7 +248,7 @@ const Chat: React.FC = () => {
 
         {/* Member List Panel */}
         {showMemberList && (
-          <div className="w-60 bg-gray-800 border-l border-gray-950 p-4 overflow-y-auto">
+          <div className="glass-panel w-60 bg-black/20 backdrop-blur-md border-l border-white/5 p-4 overflow-y-auto my-1 mr-1 rounded-r-lg border-y-0 border-r-0 h-[calc(100vh-8px)]">
             <h3 className="text-xs font-bold uppercase text-gray-400 mb-4">Online — {currentMembers.length}</h3>
             <div className="space-y-2">
               <div className="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded-md cursor-pointer transition-colors group">
