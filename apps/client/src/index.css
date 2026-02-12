@@ -3,7 +3,8 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #313338; /* Discord dark grey */
+  background-color: #313338;
+  /* Discord dark grey */
   color: white;
   overflow: hidden;
 }
@@ -14,4 +15,24 @@ body {
 
 .no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2b2d31;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a1b1e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #111214;
 }

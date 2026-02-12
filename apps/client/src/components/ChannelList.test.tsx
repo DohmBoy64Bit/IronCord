@@ -62,7 +62,7 @@ describe('ChannelList Component', () => {
         render(<ChannelList />);
 
         expect(screen.getByText('tester')).toBeInTheDocument();
-        expect(screen.getByText('Connected')).toBeInTheDocument();
+        expect(screen.getByText('Online')).toBeInTheDocument();
     });
 
     it('triggers mock event when settings icon is clicked', () => {

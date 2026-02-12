@@ -36,6 +36,7 @@ interface AppState {
   currentChannel: Channel | null;
   messages: Record<string, Message[]>;
   members: Record<string, string[]>;
+  userStatus: 'online' | 'idle' | 'dnd' | 'invisible';
   setUser: (user: User | null) => void;
   setGuilds: (guilds: Guild[]) => void;
   setChannels: (guildId: string, channels: Channel[]) => void;
@@ -44,6 +45,7 @@ interface AppState {
   addMessage: (channel: string, message: Message) => void;
   setMessages: (channel: string, messages: Message[]) => void;
   setMembers: (channel: string, members: string[]) => void;
+  setUserStatus: (status: 'online' | 'idle' | 'dnd' | 'invisible') => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -54,6 +56,7 @@ export const useStore = create<AppState>((set) => ({
   currentChannel: null,
   messages: {},
   members: {},
+  userStatus: 'online',
   setUser: (user) => set({ user }),
   setGuilds: (guilds) => set({ guilds }),
   setChannels: (guildId, guildChannels) =>
@@ -77,4 +80,5 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({
       members: { ...state.members, [channel]: channelMembers }
     })),
+  setUserStatus: (status) => set({ userStatus: status }),
 }));

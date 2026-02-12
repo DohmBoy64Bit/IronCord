@@ -16,10 +16,15 @@ contextBridge.exposeInMainWorld('ironcord', {
 
   // Events
   onIRCRegistered: (callback: any) => ipcRenderer.on('irc:registered', () => callback()),
+  onIRCConnected: (callback: any) => ipcRenderer.on('irc:connected', () => callback()), // Alias for registered/connected
+  onIRCDisconnected: (callback: any) => ipcRenderer.on('irc:disconnected', () => callback()),
   onIRCMessage: (callback: any) => ipcRenderer.on('irc:message', (event, msg) => callback(msg)),
   onIRCHistory: (callback: any) => ipcRenderer.on('irc:history', (event, data) => callback(data)),
   onIRCMembers: (callback: any) => ipcRenderer.on('irc:members', (event, data) => callback(data)),
   onIRCError: (callback: any) => ipcRenderer.on('irc:error', (event, err) => callback(err)),
+
+  // Presence
+  setPresence: (status: string) => ipcRenderer.invoke('irc:presence', { status }),
 
   // Window Controls
   windowControls: {

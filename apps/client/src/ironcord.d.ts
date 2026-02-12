@@ -14,10 +14,16 @@ interface IronCordAPI {
 
   // Events
   onIRCRegistered: (callback: () => void) => void;
+  onIRCConnected: (callback: () => void) => void;
+  onIRCDisconnected: (callback: () => void) => void;
   onIRCMessage: (callback: (msg: any) => void) => void;
   onIRCHistory: (callback: (messages: any[]) => void) => void;
   onIRCMembers: (callback: (data: { channel: string; members: string[] }) => void) => void;
   onIRCError: (callback: (err: any) => void) => void;
+
+  // Presence
+  setPresence: (status: 'online' | 'idle' | 'dnd' | 'invisible') => Promise<void>;
+
   windowControls: {
     minimize: () => Promise<void>;
     maximize: () => Promise<void>;

@@ -54,6 +54,14 @@ export class WebSocketServer {
         }
       });
 
+      socket.on('irc:presence', (payload: { status: 'online' | 'idle' | 'dnd' | 'invisible' }) => {
+        const client = this.userIRCConnections.get(socket.id);
+        if (client) {
+          client.setPresence(payload.status);
+          console.log(`User ${userId} set presence to ${payload.status}`);
+        }
+      });
+
       socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
         const client = this.userIRCConnections.get(socket.id);
@@ -116,5 +124,13 @@ export class WebSocketServer {
 
     client.connect();
     this.userIRCConnections.set(socket.id, client);
+
+    client.on('close', () => {
+      socket.emit('irc:disconnected');
+    });
+
+    client.on('reconnect_failed', () => {
+      socket.emit('irc:error', 'Connection failed after max retries');
+    });
   }
 }

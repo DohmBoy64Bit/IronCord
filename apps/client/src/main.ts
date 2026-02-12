@@ -83,6 +83,7 @@ ipcMain.handle('irc:connect', (event, { userId, config }) => {
   socket.on('connect', () => {
     console.log('Connected to Gateway');
     socket!.emit('irc:connect', { config });
+    mainWindow?.webContents.send('irc:connected');
   });
 
   socket.on('irc:registered', () => {
@@ -107,7 +108,12 @@ ipcMain.handle('irc:connect', (event, { userId, config }) => {
 
   socket.on('disconnect', () => {
     console.log('Disconnected from Gateway');
+    mainWindow?.webContents.send('irc:disconnected');
   });
+});
+
+ipcMain.handle('irc:presence', (event, { status }) => {
+  socket?.emit('irc:presence', { status });
 });
 
 ipcMain.handle('irc:send-message', (event, { channel, message }) => {

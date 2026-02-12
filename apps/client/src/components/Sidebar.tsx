@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
-import { Hash, Plus } from 'lucide-react';
+import { MessageSquare, Plus } from 'lucide-react';
 import CreateGuildModal from './CreateGuildModal';
 
 const Sidebar: React.FC = () => {
@@ -17,7 +17,7 @@ const Sidebar: React.FC = () => {
           }}
           className="group relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-3xl bg-gray-800 text-indigo-500 transition-all duration-200 hover:rounded-2xl hover:bg-indigo-600 hover:text-white"
         >
-          <Hash size={28} />
+          <MessageSquare size={28} />
           <div className="absolute left-16 z-50 scale-0 rounded-md bg-gray-900 p-2 text-xs font-bold text-white shadow-md transition-all duration-100 group-hover:scale-100">
             Direct Messages
           </div>

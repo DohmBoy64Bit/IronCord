@@ -358,6 +358,22 @@ export class IRCClient extends EventEmitter {
     this.send(`CHATHISTORY LATEST ${channel} * ${limit}`);
   }
 
+  public setPresence(status: 'online' | 'idle' | 'dnd' | 'invisible'): void {
+    if (this.socket && this.socket.writable) {
+      if (status === 'online') {
+        this.send('AWAY'); // Unset away
+      } else if (status === 'idle') {
+        this.send('AWAY :Idle');
+      } else if (status === 'dnd') {
+        this.send('AWAY :Do Not Disturb');
+      } else if (status === 'invisible') {
+        // IRC doesn't really support invisible without disconnecting or +i which is limited.
+        // For now, we'll treat it as extended away or just local state.
+        this.send('AWAY :Invisible');
+      }
+    }
+  }
+
   public disconnect(): void {
     this.intentionalDisconnect = true;
     if (this.reconnectTimer) {

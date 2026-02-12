@@ -11,10 +11,13 @@ const mockIroncord = {
     getChannels: vi.fn().mockResolvedValue([]),
     createGuild: vi.fn(),
     onIRCRegistered: vi.fn(),
+    onIRCConnected: vi.fn(),
+    onIRCDisconnected: vi.fn(),
     onIRCMessage: vi.fn(),
     onIRCHistory: vi.fn(),
     onIRCMembers: vi.fn(),
     onIRCError: vi.fn(),
+    setPresence: vi.fn(),
     windowControls: {
         minimize: vi.fn(),
         maximize: vi.fn(),

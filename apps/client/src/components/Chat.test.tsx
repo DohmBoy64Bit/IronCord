@@ -19,7 +19,7 @@ describe('Chat Component', () => {
     it('renders placeholder when no channel is selected', () => {
         render(<Chat />);
         expect(screen.getByText('Select a channel')).toBeInTheDocument();
-        expect(screen.getByText('Welcome to IronCord')).toBeInTheDocument();
+        expect(screen.getByText('Welcome, tester!')).toBeInTheDocument();
     });
 
     it('renders channel name and messages when a channel is selected', () => {
@@ -65,7 +65,7 @@ describe('Chat Component', () => {
         const pinsButton = screen.getByTestId('Pin');
         fireEvent.click(pinsButton);
 
-        expect(screen.getByText('Pinned Messages is not available in the preview.')).toBeInTheDocument();
+        expect(screen.getByText('Pinned Messages will be available in the full release.')).toBeInTheDocument();
     });
 
     it('renders dynamic members from the store', () => {
@@ -88,5 +88,39 @@ describe('Chat Component', () => {
         expect(screen.getByText('alice')).toBeInTheDocument();
         expect(screen.getByText('bob')).toBeInTheDocument();
         expect(screen.getByText('charlie')).toBeInTheDocument();
+    });
+
+    it('sends message when Enter is pressed (without Shift)', async () => {
+        const channel = { id: 'c1', guild_id: 'g1', name: 'general', irc_channel_name: '#general' };
+        useStore.setState({ currentChannel: channel });
+        (window.ironcord.sendMessage as any).mockResolvedValue(undefined);
+
+        render(<Chat />);
+
+        const input = screen.getByPlaceholderText('Message #general');
+        fireEvent.change(input, { target: { value: 'enter message' } });
+        fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 });
+
+        await waitFor(() => {
+            expect(window.ironcord.sendMessage).toHaveBeenCalledWith('#general', 'enter message');
+            expect(input).toHaveValue('');
+        });
+    });
+
+    it('does not send message when Shift + Enter is pressed', async () => {
+        const channel = { id: 'c1', guild_id: 'g1', name: 'general', irc_channel_name: '#general' };
+        useStore.setState({ currentChannel: channel });
+        (window.ironcord.sendMessage as any).mockResolvedValue(undefined);
+
+        render(<Chat />);
+
+        const input = screen.getByPlaceholderText('Message #general');
+        fireEvent.change(input, { target: { value: 'shifted message' } });
+        fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13, shiftKey: true });
+
+        // Wait a bit to ensure it WASN'T called
+        await new Promise(r => setTimeout(r, 100));
+        expect(window.ironcord.sendMessage).not.toHaveBeenCalled();
+        expect(input).toHaveValue('shifted message');
     });
 });

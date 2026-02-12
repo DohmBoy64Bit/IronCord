@@ -17,6 +17,21 @@ function nickColor(nick: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
+function formatMessageDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  const isYesterday = date.getDate() === now.getDate() - 1 && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  } else if (isYesterday) {
+    return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  } else {
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+}
+
 const Chat: React.FC = () => {
   const { currentChannel, messages, user, members } = useStore();
   const [input, setInput] = useState('');
@@ -53,6 +68,13 @@ const Chat: React.FC = () => {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e as any);
+    }
+  };
+
   const handleEmojiClick = (emoji: string) => {
     setInput(prev => prev + emoji);
     setShowEmojiPicker(false);
@@ -70,7 +92,7 @@ const Chat: React.FC = () => {
   };
 
   const showToast = useCallback((feature: string) => {
-    setToast(`${feature} is not available in the preview.`);
+    setToast(`${feature} will be available in the full release.`);
     setTimeout(() => setToast(null), 3000);
   }, []);
 
@@ -91,7 +113,7 @@ const Chat: React.FC = () => {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
-            <h3 className="text-xl font-bold text-white">Welcome to IronCord</h3>
+            <h3 className="text-xl font-bold text-white">Welcome, {user?.irc_nick || 'Traveller'}!</h3>
             <p className="text-gray-400">Select a channel to start chatting</p>
           </div>
         </div>
@@ -162,7 +184,7 @@ const Chat: React.FC = () => {
                   <div className="flex items-baseline space-x-2">
                     <span className="font-medium text-white hover:underline cursor-pointer">{msg.author}</span>
                     <span className="text-[10px] text-gray-400">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatMessageDate(msg.timestamp)}
                     </span>
                   </div>
                   <p className="text-gray-300 leading-snug">{msg.content}</p>
@@ -189,7 +211,8 @@ const Chat: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="flex items-center rounded-lg bg-gray-700 px-4 py-2">
+            {/* Darker input background for better contrast */}
+            <form onSubmit={handleSendMessage} className="flex items-center rounded-lg bg-[#383a40] px-4 py-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -205,9 +228,11 @@ const Chat: React.FC = () => {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder={`Message #${currentChannel.name}`}
-                className="flex-1 bg-transparent py-2 text-gray-200 outline-hidden"
+                className="flex-1 bg-transparent py-2 text-gray-200 outline-hidden placeholder-gray-500"
               />
+              <button type="submit" className="hidden" aria-hidden="true" />
               <div className="ml-4 flex items-center space-x-3 text-gray-400">
                 <Gift size={24} className="cursor-pointer hover:text-gray-200" onClick={() => showToast('Gifts')} />
                 <Sticker size={24} className="cursor-pointer hover:text-gray-200" onClick={() => showToast('Stickers')} />

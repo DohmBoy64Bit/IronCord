@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore } from '../store';
 import { X, Camera, ChevronRight, Gamepad2, School, Palette, Users, Plus } from 'lucide-react';
 
@@ -14,6 +14,8 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ isOpen, onClose }) 
     const [name, setName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [iconUrl, setIconUrl] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { setGuilds, guilds, setCurrentGuild } = useStore();
 
     if (!isOpen) return null;
@@ -27,12 +29,26 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ isOpen, onClose }) 
 
     const handleClose = () => {
         reset();
+        setIconUrl(null);
         onClose();
     };
 
     const handleSelectTemplate = (templateName: string) => {
         setName(`${templateName} Server`);
         setStep('customize');
+    };
+
+    const handleIconClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Simulate icon upload by creating a local object URL
+            const url = URL.createObjectURL(file);
+            setIconUrl(url);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -133,10 +149,23 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ isOpen, onClose }) 
 
                             <form onSubmit={handleSubmit}>
                                 <div className="flex justify-center mb-8">
-                                    <div className="relative group cursor-pointer">
-                                        <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-600 flex flex-col items-center justify-center text-gray-500 hover:border-indigo-500 hover:text-indigo-400 transition-all bg-gray-800/50">
-                                            <Camera size={28} className="mb-1" />
-                                            <span className="text-[10px] uppercase font-bold text-center px-2">Upload Icon</span>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                    <div className="relative group cursor-pointer" onClick={handleIconClick}>
+                                        <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-600 flex flex-col items-center justify-center text-gray-500 hover:border-indigo-500 hover:text-indigo-400 transition-all bg-gray-800/50 overflow-hidden">
+                                            {iconUrl ? (
+                                                <img src={iconUrl} alt="Server Icon" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <>
+                                                    <Camera size={28} className="mb-1" />
+                                                    <span className="text-[10px] uppercase font-bold text-center px-2">Upload Icon</span>
+                                                </>
+                                            )}
                                         </div>
                                         <div className="absolute top-0 right-0 w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center border-4 border-gray-900 shadow-lg">
                                             <Plus size={14} className="text-white" />
