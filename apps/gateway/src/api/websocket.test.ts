@@ -142,6 +142,7 @@ describe('WebSocketServer', () => {
             await new Promise(resolve => process.nextTick(resolve));
             const client = (server as any).userIRCConnections.get('socket123');
             expect(client).toBeDefined();
+            mockIRCEmitter.emit('registered');
 
             mockSocket.emit('irc:message', { channel: '#test', message: 'hello' });
 
