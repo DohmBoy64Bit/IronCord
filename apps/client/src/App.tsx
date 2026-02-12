@@ -26,6 +26,8 @@ const App: React.FC = () => {
         host: ircHost,
         port: ircPort,
         nick: user.irc_nick,
+        username: user.irc_nick,
+        realname: user.irc_nick,
       });
 
       // 3. Setup event listeners

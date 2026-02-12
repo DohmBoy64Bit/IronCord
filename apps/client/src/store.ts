@@ -46,6 +46,10 @@ interface AppState {
   setMessages: (channel: string, messages: Message[]) => void;
   setMembers: (channel: string, members: string[]) => void;
   setUserStatus: (status: 'online' | 'idle' | 'dnd' | 'invisible') => void;
+  updateGuild: (guildId: string, updates: Partial<Guild>) => void;
+  updateChannel: (channelId: string, updates: Partial<Channel>) => void;
+  deleteChannel: (channelId: string) => void;
+  createChannel: (guildId: string, name: string) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -81,4 +85,57 @@ export const useStore = create<AppState>((set) => ({
       members: { ...state.members, [channel]: channelMembers }
     })),
   setUserStatus: (status) => set({ userStatus: status }),
+  updateGuild: (guildId: string, updates: Partial<Guild>) => {
+    console.log('[MOCK API] updateGuild:', { guildId, updates });
+    set((state) => ({
+      guilds: state.guilds.map((g) => (g.id === guildId ? { ...g, ...updates } : g)),
+      currentGuild: state.currentGuild?.id === guildId ? { ...state.currentGuild, ...updates } : state.currentGuild,
+    }));
+  },
+  updateChannel: (channelId: string, updates: Partial<Channel>) => {
+    console.log('[MOCK API] updateChannel:', { channelId, updates });
+    set((state) => {
+      const newChannels = { ...state.channels };
+      for (const guildId in newChannels) {
+        newChannels[guildId] = newChannels[guildId].map((c) =>
+          c.id === channelId ? { ...c, ...updates } : c
+        );
+      }
+      return {
+        channels: newChannels,
+        currentChannel: state.currentChannel?.id === channelId
+          ? { ...state.currentChannel, ...updates }
+          : state.currentChannel,
+      };
+    });
+  },
+  deleteChannel: (channelId: string) => {
+    console.log('[MOCK API] deleteChannel:', { channelId });
+    set((state) => {
+      // Helper to remove channel from all guilds' channel lists
+      const newChannels = { ...state.channels };
+      for (const guildId in newChannels) {
+        newChannels[guildId] = newChannels[guildId].filter((c) => c.id !== channelId);
+      }
+      return {
+        channels: newChannels,
+        currentChannel: state.currentChannel?.id === channelId ? null : state.currentChannel,
+      };
+    });
+  },
+  createChannel: (guildId: string, name: string) => {
+    console.log('[MOCK API] createChannel:', { guildId, name });
+    const newChannel: Channel = {
+      id: Math.random().toString(36).substr(2, 9),
+      guild_id: guildId,
+      name: name,
+      irc_channel_name: `#${name}`, // Simple mock
+    };
+    set((state) => ({
+      channels: {
+        ...state.channels,
+        [guildId]: [...(state.channels[guildId] || []), newChannel],
+      },
+    }));
+  },
 }));

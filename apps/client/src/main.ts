@@ -81,9 +81,13 @@ ipcMain.handle('irc:connect', (event, { userId, config }) => {
   });
 
   socket.on('connect', () => {
-    console.log('Connected to Gateway');
+    console.log('[SOCKET-DIAG] Connected to Gateway at', GATEWAY_URL, '| Socket ID:', socket!.id);
     socket!.emit('irc:connect', { config });
     mainWindow?.webContents.send('irc:connected');
+  });
+
+  socket.on('connect_error', (err: Error) => {
+    console.error('[SOCKET-DIAG] Connection to Gateway FAILED:', err.message);
   });
 
   socket.on('irc:registered', () => {

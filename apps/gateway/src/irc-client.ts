@@ -45,6 +45,14 @@ export class IRCClient extends EventEmitter {
 
   public connect(): void {
     this.intentionalDisconnect = false;
+    console.log('[IRC-DIAG] Attempting connection with config:', {
+      host: this.config.host,
+      port: this.config.port,
+      nick: this.config.nick,
+      username: this.config.username,
+      realname: this.config.realname,
+      hasPassword: !!this.config.password,
+    });
     this.socket = new net.Socket();
 
     this.socket.on('data', (data) => {

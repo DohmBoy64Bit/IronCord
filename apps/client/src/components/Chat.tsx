@@ -198,7 +198,7 @@ const Chat: React.FC = () => {
             {showEmojiPicker && (
               <div className="glass-panel absolute bottom-20 right-4 z-50 rounded-lg bg-black/80 backdrop-blur-xl p-3 shadow-2xl border-gray-700 w-64">
                 <div className="grid grid-cols-6 gap-2">
-                  {['😀', '😂', '😍', '👍', '🔥', '✨', '🚀', '🎉', '💡', '💯', '👋', '👀', '❤️', '🎉', '🤔', '😎', '🙌', '⭐'].map(emoji => (
+                  {['😀', '😂', '😍', '👍', '🔥', '✨', '🚀', '🎉', '💡', '💯', '👋', '👀', '❤️', '🤔', '😎', '🙌', '⭐'].map(emoji => (
                     <button
                       key={emoji}
                       onClick={() => handleEmojiClick(emoji)}

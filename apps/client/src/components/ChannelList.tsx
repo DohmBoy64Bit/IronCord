@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../store';
-import { Hash, ChevronDown, Settings } from 'lucide-react';
+import { Hash, ChevronDown, Settings, Plus } from 'lucide-react';
+import ServerSettingsModal from './ServerSettingsModal';
+import ChannelContextMenu from './ChannelContextMenu';
 
 // Generate a consistent color from a username
 function nickColor(nick: string): string {
@@ -18,9 +20,13 @@ function nickColor(nick: string): string {
 }
 
 const ChannelList: React.FC = () => {
-  const { currentGuild, channels, setChannels, currentChannel, setCurrentChannel, user, userStatus, setUserStatus } = useStore();
+  const { currentGuild, channels, setChannels, currentChannel, setCurrentChannel, user, userStatus, setUserStatus, createChannel } = useStore();
   const [isConnected, setIsConnected] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [showServerSettings, setShowServerSettings] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; channelId: string } | null>(null);
+  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+  const [newChannelName, setNewChannelName] = useState('');
 
   useEffect(() => {
     // Listen for real-time connection events
@@ -46,6 +52,13 @@ const ChannelList: React.FC = () => {
     }
   }, [currentGuild]);
 
+  // Reset server settings modal when switching servers
+  useEffect(() => {
+    setShowServerSettings(false);
+    setContextMenu(null);
+  }, [currentGuild?.id]);
+
+
   const handleStatusChange = async (status: 'online' | 'idle' | 'dnd' | 'invisible') => {
     setUserStatus(status);
     setShowStatusMenu(false);
@@ -54,6 +67,20 @@ const ChannelList: React.FC = () => {
     } catch (err) {
       console.error('Failed to set presence:', err);
     }
+  };
+
+  const handleCreateChannel = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentGuild && newChannelName.trim()) {
+      createChannel(currentGuild.id, newChannelName.trim());
+      setNewChannelName('');
+      setIsCreatingChannel(false);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, channelId: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, channelId });
   };
 
   const guildChannels = currentGuild ? channels[currentGuild.id] || [] : [];
@@ -74,10 +101,29 @@ const ChannelList: React.FC = () => {
   };
 
   return (
-    <div className="glass-panel flex w-60 flex-col bg-black/20 backdrop-blur-lg border-x-0 my-1 h-[calc(100%-8px)]">
+    <div className="glass-panel flex w-60 flex-col bg-black/20 backdrop-blur-lg border-x-0 my-1 h-[calc(100%-8px)] relative">
       <div className="flex h-12 cursor-pointer items-center justify-between border-b border-black/20 px-4 font-bold text-white shadow-sm transition-colors hover:bg-white/5">
-        {currentGuild ? currentGuild.name : 'Direct Messages'}
-        {currentGuild && <ChevronDown size={20} />}
+        <span className="truncate">{currentGuild ? currentGuild.name : 'Direct Messages'}</span>
+        {currentGuild && (
+          <div className="flex items-center space-x-1">
+            <Plus
+              size={16}
+              className="text-gray-400 hover:text-white transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCreatingChannel(true);
+              }}
+            />
+            <Settings
+              size={16}
+              className="text-gray-400 hover:text-white transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowServerSettings(true);
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex-1 space-y-[2px] px-2 overflow-y-auto">
@@ -85,6 +131,7 @@ const ChannelList: React.FC = () => {
           <div
             key={channel.id}
             onClick={() => setCurrentChannel(channel)}
+            onContextMenu={(e) => handleContextMenu(e, channel.id)}
             className={`group flex cursor-pointer items-center rounded-md px-2 py-1 transition-all duration-200 ${currentChannel?.id === channel.id
               ? 'bg-white/10 text-white shadow-inner'
               : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
@@ -117,7 +164,7 @@ const ChannelList: React.FC = () => {
             className="cursor-pointer rounded-md p-1 hover:bg-gray-800"
             onClick={(e) => {
               e.stopPropagation();
-              const event = new CustomEvent('show-toast', { detail: 'Settings' });
+              const event = new CustomEvent('show-toast', { detail: 'User Settings' });
               window.dispatchEvent(event);
             }}
           >
@@ -146,6 +193,57 @@ const ChannelList: React.FC = () => {
           </>
         )}
       </div>
+
+      <ServerSettingsModal
+        isOpen={showServerSettings}
+        onClose={() => setShowServerSettings(false)}
+      />
+
+      {contextMenu && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
+          <ChannelContextMenu
+            channelId={contextMenu.channelId}
+            position={{ x: contextMenu.x, y: contextMenu.y }}
+            onClose={() => setContextMenu(null)}
+          />
+        </>
+      )}
+
+      {isCreatingChannel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-80 rounded-lg bg-gray-900 border border-emerald-500/20 p-4 shadow-xl">
+            <h3 className="text-lg font-bold text-white mb-2">Create Channel</h3>
+            <form onSubmit={handleCreateChannel}>
+              <input
+                autoFocus
+                type="text"
+                value={newChannelName}
+                onChange={e => setNewChannelName(e.target.value)}
+                className="w-full bg-black/20 text-white border border-gray-700 rounded p-2 mb-4 outline-none focus:border-emerald-500"
+                placeholder="Channel name"
+              />
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingChannel(false)}
+                  className="px-3 py-1 rounded text-gray-300 hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newChannelName.trim()}
+                  className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 font-bold disabled:opacity-50"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
