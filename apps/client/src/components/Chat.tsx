@@ -106,7 +106,7 @@ const Chat: React.FC = () => {
 
   if (!currentChannel) {
     return (
-      <div className="flex flex-1 flex-col bg-gray-800">
+      <div className="glass-panel flex flex-1 flex-col bg-transparent backdrop-blur-md rounded-r-lg my-1 mr-1 h-[calc(100%-8px)] border-l-0">
         <div className="flex h-12 items-center border-b border-gray-950 px-4 shadow-xs">
           <Hash size={24} className="mr-2 text-gray-500" />
           <span className="font-bold text-white">Select a channel</span>
@@ -122,7 +122,7 @@ const Chat: React.FC = () => {
   }
 
   return (
-    <div className="glass-panel flex flex-1 flex-col bg-transparent backdrop-blur-md rounded-r-lg my-1 mr-1 h-[calc(100vh-8px)] border-l-0">
+    <div className="glass-panel flex flex-1 flex-col bg-transparent backdrop-blur-md rounded-r-lg my-1 mr-1 h-[calc(100%-8px)] border-l-0">
       {/* Toast */}
       {toast && (
         <div className="absolute top-16 right-4 z-50 rounded-lg bg-gray-900 px-4 py-2 text-sm text-gray-300 shadow-lg border border-gray-700">

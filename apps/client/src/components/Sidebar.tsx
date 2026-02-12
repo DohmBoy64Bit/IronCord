@@ -9,7 +9,7 @@ const Sidebar: React.FC = () => {
 
   return (
     <>
-      <div className="glass-panel flex w-20 flex-col items-center space-y-4 bg-black/40 backdrop-blur-xl py-3 border-r-0 rounded-l-lg my-1 ml-1 h-[calc(100vh-8px)]">
+      <div className="glass-panel flex w-20 flex-col items-center space-y-4 bg-black/40 backdrop-blur-xl py-3 border-r-0 rounded-l-lg my-1 ml-1 h-[calc(100%-8px)]">
         <div
           onClick={() => {
             const event = new CustomEvent('show-toast', { detail: 'Direct Messages' });

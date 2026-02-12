@@ -74,7 +74,7 @@ const ChannelList: React.FC = () => {
   };
 
   return (
-    <div className="glass-panel flex w-60 flex-col bg-black/20 backdrop-blur-lg border-x-0 my-1 h-[calc(100vh-8px)]">
+    <div className="glass-panel flex w-60 flex-col bg-black/20 backdrop-blur-lg border-x-0 my-1 h-[calc(100%-8px)]">
       <div className="flex h-12 cursor-pointer items-center justify-between border-b border-black/20 px-4 font-bold text-white shadow-sm transition-colors hover:bg-white/5">
         {currentGuild ? currentGuild.name : 'Direct Messages'}
         {currentGuild && <ChevronDown size={20} />}
