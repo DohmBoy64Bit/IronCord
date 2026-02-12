@@ -13,6 +13,11 @@ if (!JWT_SECRET) {
 export class WebSocketServer {
   private io: SocketServer;
   private userIRCConnections: Map<string, IRCClient> = new Map();
+  private ircRegisteredSockets: Set<string> = new Set();
+
+  private normalizeChannel(channel: string): string {
+    return channel.startsWith('#') ? channel : `#${channel}`;
+  }
 
   constructor(server: HttpServer) {
     this.io = new SocketServer(server, {
@@ -47,11 +52,42 @@ export class WebSocketServer {
         this.connectToIRC(socket, userId, payload.config);
       });
 
-      socket.on('irc:message', (payload: { channel: string; message: string }) => {
+      socket.on('irc:message', (payload: { channel?: string; message?: string }) => {
         const client = this.userIRCConnections.get(socket.id);
-        if (client) {
-          client.privmsg(payload.channel, payload.message);
+
+        if (!payload?.channel || !payload?.message) {
+          console.warn('[WS->IRC] Dropping malformed irc:message payload', { socketId: socket.id, payload });
+          return;
         }
+
+        const normalizedChannel = this.normalizeChannel(payload.channel);
+
+        console.log('[WS->IRC] Received frontend payload', {
+          socketId: socket.id,
+          userId,
+          requestedChannel: payload.channel,
+          normalizedChannel,
+          message: payload.message,
+        });
+
+        if (!client) {
+          console.warn('[WS->IRC] Dropping message; no IRC client is attached to socket', socket.id);
+          socket.emit('irc:error', 'No active IRC connection');
+          return;
+        }
+
+        if (!this.ircRegisteredSockets.has(socket.id)) {
+          console.warn('[WS->IRC] Dropping message; IRC client is not registered yet for socket', socket.id);
+          socket.emit('irc:error', 'IRC session not ready');
+          return;
+        }
+
+        console.log('[WS->IRC] Sending PRIVMSG', {
+          socketId: socket.id,
+          channel: normalizedChannel,
+          message: payload.message,
+        });
+        client.privmsg(normalizedChannel, payload.message);
       });
 
       socket.on('irc:presence', (payload: { status: 'online' | 'idle' | 'dnd' | 'invisible' }) => {
@@ -64,6 +100,7 @@ export class WebSocketServer {
 
       socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
+        this.ircRegisteredSockets.delete(socket.id);
         const client = this.userIRCConnections.get(socket.id);
         if (client) {
           client.disconnect();
@@ -77,6 +114,8 @@ export class WebSocketServer {
     const client = new IRCClient(config);
 
     client.on('registered', async () => {
+      this.ircRegisteredSockets.add(socket.id);
+      console.log('[IRC->WS] IRC registration complete', { socketId: socket.id, userId });
       socket.emit('irc:registered');
 
       // Auto-join user's channels
@@ -90,10 +129,11 @@ export class WebSocketServer {
         );
 
         for (const row of result.rows) {
-          client.join(row.irc_channel_name);
+          const normalizedChannel = this.normalizeChannel(row.irc_channel_name);
+          client.join(normalizedChannel);
           // Fetch recent history for each channel
           setTimeout(() => {
-            client.fetchHistory(row.irc_channel_name, 50);
+            client.fetchHistory(normalizedChannel, 50);
           }, 500);
         }
       } catch (err) {
@@ -126,6 +166,7 @@ export class WebSocketServer {
     this.userIRCConnections.set(socket.id, client);
 
     client.on('close', () => {
+      this.ircRegisteredSockets.delete(socket.id);
       socket.emit('irc:disconnected');
     });
 
